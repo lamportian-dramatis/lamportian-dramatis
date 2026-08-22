@@ -14,7 +14,7 @@ IMAGES := $(SOURCES:.typ=.png)
 DATA_HOME := $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
 LOCAL := $(DATA_HOME)/typst/packages/preview/$(NAME)/$(VERSION)
 
-.PHONY: all gallery check install uninstall publish clean
+.PHONY: all gallery check install uninstall publish docs clean
 
 all: gallery
 
@@ -39,6 +39,16 @@ gallery/%.png: gallery/%.typ lib.typ
 ## Compile every example without writing anything: silence means the library still works.
 check: install
 	@for f in $(SOURCES); do $(TYPST) compile --root . --format png $$f /dev/null || exit 1; done
+
+## Refresh the images the site serves, from the gallery this repository builds.  `docs` is a
+## submodule -- the lamportian-dramatis.github.io repository, which GitHub Pages builds with its own
+## Jekyll -- so the prose is edited in place under docs/ and committed there, and only the images
+## have to be carried across.  Commit and push inside docs/, then commit the moved submodule pointer
+## here, so that a revision of this repository names the documentation that went with it.
+docs: gallery
+	@test -e docs/_config.yml || { echo "docs/ is empty -- run: git submodule update --init"; exit 1; }
+	@mkdir -p docs/gallery && cp $(IMAGES) docs/gallery/
+	@git -C docs status --short
 
 ## Stage the package into a clone of github.com/typst/packages, ready to commit and open a PR.
 publish: check gallery

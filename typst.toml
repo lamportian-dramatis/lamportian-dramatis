@@ -19,4 +19,4 @@ keywords = [
   "causality",
   "concurrency",
 ]
-exclude = ["/gallery/*"]
+exclude = ["/gallery/*", "/docs/*"]
