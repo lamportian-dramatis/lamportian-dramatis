@@ -53,8 +53,15 @@
 /// two a label sits on when nothing else has a say.  `along` names the dimension of a label that runs
 /// along the timelines, which is what a ratio displacement is taken against, and `name-anchor` puts a
 /// replica's own name just off the start of its lane.
+///
+/// `col-gap` and `row-gap` are this orientation's default spacings, and they are not the same numbers
+/// for all four.  What a gap has to make room for is text, and text runs across the page whichever way
+/// the diagram does: the wider default belongs to whichever axis lies horizontally, so turning a
+/// diagram on its side turns the two over with it.
 #let _orientations = (
   rightwards: (
+    col-gap: 2.0,
+    row-gap: 1.5,
     time: (1, 0),
     lane: (0, -1),
     sides: (top, bottom),
@@ -63,6 +70,8 @@
     name-anchor: "east",
   ),
   leftwards: (
+    col-gap: 2.0,
+    row-gap: 1.5,
     time: (-1, 0),
     lane: (0, -1),
     sides: (top, bottom),
@@ -71,6 +80,8 @@
     name-anchor: "west",
   ),
   downwards: (
+    col-gap: 1.5,
+    row-gap: 2.4,
     time: (0, -1),
     lane: (1, 0),
     sides: (left, right),
@@ -79,6 +90,8 @@
     name-anchor: "south",
   ),
   upwards: (
+    col-gap: 1.5,
+    row-gap: 2.4,
     time: (0, 1),
     lane: (1, 0),
     sides: (left, right),
@@ -772,14 +785,24 @@
   events: (:),
   orientation: horizontal,
   overlays: none,
-  col-gap: 2.0,
-  row-gap: 1.5,
+  col-gap: none,
+  row-gap: none,
   text-size: 0.62em,
   dot: 0.095,
   message-stroke: 0.9pt + luma(110),
 ) = {
   let orientation = _orientation(orientation)
   let axes = _orientations.at(orientation)
+  // Left to itself, a gap takes the value that suits the way this diagram runs; see `_orientations`.
+  for (name, value) in (("col-gap", col-gap), ("row-gap", row-gap)) {
+    assert(
+      value == none or type(value) in (int, float),
+      message: "lamport-diagram: `" + name + "` is a number of canvas centimetres, or `none` for the "
+        + "one that suits the orientation",
+    )
+  }
+  let col-gap = if col-gap == none { axes.col-gap } else { col-gap }
+  let row-gap = if row-gap == none { axes.row-gap } else { row-gap }
   let (near-side, far-side) = axes.sides
   let lanes = replicas.enumerate().map(((i, spec)) => _replica(spec, i))
   for lane in lanes {
