@@ -6,7 +6,7 @@ VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' typst.toml)
 
 # The files the package is made of.  Everything else in this repository -- the Makefile above all --
 # is development scaffolding and must not reach the Universe repository.
-DIST := typst.toml lib.typ README.md LICENSE gallery
+DIST := typst.toml lib.typ README.md CHANGELOG.md LICENSE gallery
 
 SOURCES := $(wildcard gallery/*.typ)
 IMAGES := $(SOURCES:.typ=.png)
