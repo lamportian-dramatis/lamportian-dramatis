@@ -102,6 +102,27 @@
   name
 }
 
+/// CeTZ's drawing commands, re-exported so that an `overlays` body can reach them without the caller
+/// pinning a second dependency: `#import "@preview/lamportian-dramatis:0.1.0": draw` and then
+/// `#import draw: *`.  It is the same module the diagram draws itself with, hence the same version.
+#let draw = cetz.draw
+
+/// The layers of a diagram, bottom to top, and the keys `overlays` takes.  A drawing given for a
+/// layer is appended to that layer's own drawing pass -- after everything the diagram draws there,
+/// before anything in any later pass.  `background` and `foreground` are not passes of the diagram:
+/// they are bookends, one before the first and one after the last.
+///
+/// They are plain strings, so `overlays: (marks: ..)` needs no import; the bindings are for naming a
+/// layer where a string would read worse, and `layers` for walking the stack.
+#let background = "background"
+#let arrows = "arrows"
+#let backdrops = "backdrops"
+#let timelines = "timelines"
+#let marks = "marks"
+#let labels = "labels"
+#let foreground = "foreground"
+#let layers = (background, arrows, backdrops, timelines, marks, labels, foreground)
+
 /// Every side a label may be asked to sit on, in any orientation.  Which two of them are legal is the
 /// diagram's business, since only there is the orientation known.
 #let _sides = (top, bottom, left, right)
@@ -154,7 +175,7 @@
 #let event(..args) = {
   for key in args.named().keys() {
     assert(
-      key in ("position", "displacement", "body", "size", "width", "halo"),
+      key in ("position", "displacement", "body", "size", "width", "halo", "id"),
       message: "lamport-diagram: event has no `" + key + "` parameter",
     )
   }
@@ -167,6 +188,11 @@
   assert(
     halo == auto or halo == none or type(halo) == length,
     message: "lamport-diagram: event `halo` must be `auto`, `none` or a length, as in `halo: 2mm`",
+  )
+  let id = args.named().at("id", default: none)
+  assert(
+    id == none or type(id) == str,
+    message: "lamport-diagram: event `id` must be a string, as in `id: \"diverged\"`",
   )
   let position = args.named().at("position", default: auto)
   let displacement = args.named().at("displacement", default: auto)
@@ -213,6 +239,7 @@
   )
   (
     kind: "event",
+    id: id,
     body: body,
     at: position,
     size: _point-size(args),
@@ -399,6 +426,9 @@
     halo: d.at("halo", default: auto),
     label: d.at("label", default: none),
     name: d.at("name", default: none),
+    // What an overlay addresses this point by.  A send, recv or sync is known by the message name
+    // that pairs its two ends; an event has no such name, so it takes one of its own or none at all.
+    id: d.at("id", default: d.at("name", default: none)),
     at: d.at("at", default: auto),
     // How many columns this item takes before the next one on its lane may start.  Everything takes
     // one; `idle` is what takes more.
@@ -677,6 +707,47 @@
   cols
 }
 
+/// The ids an overlay may address a lane's points by, checked for collisions.  A `send`, `recv` or
+/// `sync` is known by the message name that pairs its ends; an `event` by the `id` it was given, and
+/// most events are given none.  Two points on one lane sharing an id would make `mark("A", "x")`
+/// answer with whichever came first, silently, so it fails instead.
+#let _check-ids(lanes, rows) = {
+  for (ri, row) in rows.enumerate() {
+    let seen = (:)
+    for it in row {
+      if it.id != none {
+        assert(
+          not (it.id in seen),
+          message: "lamport-diagram: replica '"
+            + lanes.at(ri).id
+            + "' has two points called '"
+            + it.id
+            + "' -- an overlay could not tell them apart",
+        )
+        seen.insert(it.id, true)
+      }
+    }
+  }
+}
+
+/// Whatever `overlays` was given, as a dictionary from layer to drawing.  A body or a function on its
+/// own means the `foreground`, that being what a caller who has not thought about depth wants.
+#let _overlays(overlays) = {
+  if overlays == none {
+    (:)
+  } else if type(overlays) == dictionary {
+    for key in overlays.keys() {
+      assert(
+        key in layers,
+        message: "lamport-diagram: '" + key + "' is not a layer -- " + layers.join(", "),
+      )
+    }
+    overlays
+  } else {
+    (foreground: overlays)
+  }
+}
+
 /// A Lamport diagram of `replicas` exchanging `events`.
 ///
 /// `replicas` fixes the lane order -- top to bottom in a horizontal diagram, left to right in a
@@ -700,6 +771,7 @@
   replicas: (),
   events: (:),
   orientation: horizontal,
+  overlays: none,
   col-gap: 2.0,
   row-gap: 1.5,
   text-size: 0.62em,
@@ -736,6 +808,8 @@
       message: "lamport-diagram: '" + name + "' names both a sync and a send/recv message",
     )
   }
+  _check-ids(lanes, rows)
+  let given-layers = _overlays(overlays)
   let cols = _columns(rows, msgs, exchanges)
   // An item that takes several columns counts every one of them, so a trailing `idle` still
   // stretches the drawing.
@@ -879,8 +953,99 @@
     let name-t = back-reach - 0.3
     let lane-end = fore-reach + col-gap * 0.55
 
+    // What a drawing given for a layer is handed.  It answers in the diagram's own axes -- times
+    // along the lanes, lanes across them -- wherever there is a choice, so that a drawing written
+    // against it survives a change of orientation; `mark` and `point` are the two that come back as
+    // page coordinates, those being what CeTZ draws with.
+    let lane-of = value => if type(value) == str {
+      let i = lanes.position(l => l.id == value)
+      assert(
+        i != none,
+        message: "lamport-diagram: overlays name replica '" + value + "', which is not in `replicas`",
+      )
+      i
+    } else {
+      assert(
+        type(value) in (int, float),
+        message: "lamport-diagram: a lane is a replica id or a number of lanes from the first",
+      )
+      value
+    }
+    // An id names a point for as long as the diagram keeps it; an index is 1-based over everything
+    // the lane holds, `gap` and `idle` included, and counts from the end when negative.
+    let index-of = (replica, key) => {
+      let ri = lane-of(replica)
+      assert(
+        type(ri) == int,
+        message: "lamport-diagram: a point belongs to a replica, so name one rather than a lane",
+      )
+      let row = rows.at(ri)
+      let ii = if type(key) == str {
+        let found = row.position(it => it.id == key)
+        assert(
+          found != none,
+          message: "lamport-diagram: replica '"
+            + lanes.at(ri).id
+            + "' has no point called '"
+            + key
+            + "' -- an event takes one with `id:`, and a send, recv or sync is known by its name",
+        )
+        found
+      } else if type(key) == int {
+        assert(key != 0, message: "lamport-diagram: a point's index counts from 1, or -1 from the end")
+        let n = row.len()
+        let idx = if key > 0 { key - 1 } else { n + key }
+        assert(
+          idx >= 0 and idx < n,
+          message: "lamport-diagram: replica '"
+            + lanes.at(ri).id
+            + "' holds "
+            + str(n)
+            + " points, so "
+            + str(key)
+            + " names none of them",
+        )
+        idx
+      } else {
+        panic("lamport-diagram: a point is named by an id or by an index")
+      }
+      (ri, ii)
+    }
+    let locator = (
+      mark: (replica, key) => {
+        let (ri, ii) = index-of(replica, key)
+        at(ri, ii)
+      },
+      column: (replica, key) => {
+        let (ri, ii) = index-of(replica, key)
+        cols.at(ri).at(ii)
+      },
+      point: (time, lane) => point(t-of(time), lane-of(lane)),
+      span: (lane-start / col-gap, lane-end / col-gap),
+      replicas: lanes.map(l => l.id),
+      ncols: ncols,
+      orientation: orientation,
+      col-gap: col-gap,
+      row-gap: row-gap,
+      dot: dot,
+    )
+    // A layer's drawing, ready to splice into the pass it belongs to.
+    let layer-of = name => {
+      let given = given-layers.at(name, default: none)
+      if given == none {
+        ()
+      } else if type(given) == function {
+        given(locator)
+      } else {
+        given
+      }
+    }
+
     cetz.canvas(length: 1cm, {
       import cetz.draw: *
+
+      // Beneath every pass the diagram draws for itself.
+      layer-of(background)
 
       // Arrows are laid down first, so every timeline, mark and label is drawn over them.  An arrow
       // that crosses a lane it has no endpoint on then reads as passing behind that lane's own marks,
@@ -947,6 +1112,7 @@
           )
         }
       }
+      layer-of(arrows)
 
       // The timeline of a lane, as the runs the line is drawn in: each `gap` column interrupts the
       // solid line with a dotted span of its own.  The backdrop and the line itself walk these same
@@ -1006,8 +1172,10 @@
           }
         }
       }
+      layer-of(backdrops)
 
-      // Layer 2: the timelines, their marks and their labels.
+      // The timelines and the replica names.  Every lane's line is laid before any mark, so a lower
+      // lane can no longer paint over an upper lane's label where the two overlap.
       for (ri, lane) in lanes.enumerate() {
         let solid = lane.color + 1.1pt
         let elided = (paint: lane.color, thickness: 1.1pt, dash: "dotted")
@@ -1032,7 +1200,11 @@
           anchor: axes.name-anchor,
           text(fill: lane.color, weight: "medium", lane.label),
         )
+      }
+      layer-of(timelines)
 
+      // The marks.
+      for (ri, lane) in lanes.enumerate() {
         for (ii, it) in rows.at(ri).enumerate() {
           let mark = at(ri, ii)
           // Hollow marks a point where the replica touches the network, solid a purely local step, and
@@ -1045,6 +1217,13 @@
           } else if it.kind == "event" {
             circle(mark, radius: mark-radius(it), fill: lane.color, stroke: none)
           }
+        }
+      }
+      layer-of(marks)
+
+      // The labels, last of the diagram's own passes.
+      for (ri, lane) in lanes.enumerate() {
+        for (ii, it) in rows.at(ri).enumerate() {
           if it.body != none {
             let side = side-of(it, ri)
             // A label gets the same backdrop a mark does, for the same reason: the arrows are already
@@ -1067,6 +1246,10 @@
           }
         }
       }
+      layer-of(labels)
+
+      // Over everything, that pass included.
+      layer-of(foreground)
     })
   }
 
