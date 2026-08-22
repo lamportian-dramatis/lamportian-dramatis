@@ -49,15 +49,43 @@
 
 /// What each orientation means to the drawing.  `time` is the unit direction of increasing logical
 /// time and `lane` that of increasing replica index, both in canvas coordinates; `sides` are the two
-/// sides a label may sit on, near lane 0 first, so the second of them is this orientation's default
-/// side.  `along` names the dimension of a label that runs along the timelines, which is what a ratio
-/// displacement is taken against, and `name-anchor` puts a replica's own name just off the start of
-/// its lane.
+/// sides a label may sit on, the one towards lane 0 first, and `default-side` is whichever of those
+/// two a label sits on when nothing else has a say.  `along` names the dimension of a label that runs
+/// along the timelines, which is what a ratio displacement is taken against, and `name-anchor` puts a
+/// replica's own name just off the start of its lane.
 #let _orientations = (
-  rightwards: (time: (1, 0), lane: (0, -1), sides: (top, bottom), along: "width", name-anchor: "east"),
-  leftwards: (time: (-1, 0), lane: (0, -1), sides: (top, bottom), along: "width", name-anchor: "west"),
-  downwards: (time: (0, -1), lane: (1, 0), sides: (left, right), along: "height", name-anchor: "south"),
-  upwards: (time: (0, 1), lane: (1, 0), sides: (left, right), along: "height", name-anchor: "north"),
+  rightwards: (
+    time: (1, 0),
+    lane: (0, -1),
+    sides: (top, bottom),
+    default-side: top,
+    along: "width",
+    name-anchor: "east",
+  ),
+  leftwards: (
+    time: (-1, 0),
+    lane: (0, -1),
+    sides: (top, bottom),
+    default-side: top,
+    along: "width",
+    name-anchor: "west",
+  ),
+  downwards: (
+    time: (0, -1),
+    lane: (1, 0),
+    sides: (left, right),
+    default-side: right,
+    along: "height",
+    name-anchor: "south",
+  ),
+  upwards: (
+    time: (0, 1),
+    lane: (1, 0),
+    sides: (left, right),
+    default-side: right,
+    along: "height",
+    name-anchor: "north",
+  ),
 )
 
 /// The canonical name of an orientation: the two shorthands resolve to the direction they stand for,
@@ -697,7 +725,7 @@
 ///
 /// `orientation` says which way logical time runs: `horizontal` (`rightwards`) or `leftwards` lay the
 /// timelines out as rows and stack the replicas downwards, so a label sits `above` or `below` its
-/// lane and `below` by default; `vertical` (`downwards`) or `upwards` lay them out as columns and
+/// lane and `above` by default; `vertical` (`downwards`) or `upwards` lay them out as columns and
 /// stack the replicas rightwards, so a label sits `left` or `right` of its lane and `right` by
 /// default.  A side the orientation has no room for is dropped back to that default, with a warning
 /// printed above the diagram.
@@ -791,9 +819,9 @@
 
   // Label sides for send/recv points default to the side the arrow does *not* occupy, so an arrow
   // running straight across the lanes never runs through its own endpoint labels.  `near-side` is the
-  // one towards the first replica, `far-side` the one away from it -- `above`/`below` on a horizontal
-  // diagram, `left`/`right` on a vertical one -- and `far-side` is also what a label falls back on
-  // when nothing else has a say.
+  // one towards the first replica and `far-side` the one away from it -- `above`/`below` on a
+  // horizontal diagram, `left`/`right` on a vertical one.  A point with no arrow to dodge falls back
+  // on the orientation's own default side instead.
   let side-of = (it, ri) => {
     // The lane this item's arrow runs towards, if it has one.
     let other = if it.kind == "send" {
@@ -808,7 +836,7 @@
     if it.at != auto {
       it.at
     } else if other == none {
-      far-side
+      axes.default-side
     } else if other > ri {
       near-side
     } else {

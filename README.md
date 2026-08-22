@@ -61,7 +61,7 @@ Two things follow.  A diagram stays correct while you insert events — nothing 
 
 A receive is drawn by default a centimetre further along in time than its send, so every message arrow follows the direction of time without the diagram needing padding put in by hand.  `recv(..., displacement: none)` puts it in the send's own column instead, for an arrow that runs straight across the lanes.
 
-Labels are centred on their own mark and sit on the orientation's default side — `below` a horizontal timeline, `right` of a vertical one — except a lane's opening label, nudged forward in time so it does not read as belonging to the replica name just before it.  `event` overrides both for one event, `replica` for a whole lane.
+Labels are centred on their own mark and sit on the orientation's default side — `above` a horizontal timeline, `right` of a vertical one — except a lane's opening label, nudged forward in time so it does not read as belonging to the replica name just before it.  `event` overrides both for one event, `replica` for a whole lane.
 
 Arrows are drawn first and everything else on top, so an arrow that crosses a lane it has no endpoint on passes *under* that lane rather than striking through it.  A lane erases across the whole strip it occupies, marks included: each mark clears the same annulus that an arrow landing on it would stop short of, so a passing arrow breaks around a dot instead of running into its edge.  Labels knock out the arrow behind them for the same reason.
 
@@ -105,7 +105,7 @@ The orientation decides which sides a label may sit on, and which one it sits on
 
 | Orientation | Sides | Default |
 | --- | --- | --- |
-| `horizontal`, `rightwards`, `leftwards` | `above`, `below` | `below` |
+| `horizontal`, `rightwards`, `leftwards` | `above`, `below` | `above` |
 | `vertical`, `downwards`, `upwards` | `left`, `right` | `right` |
 
 A side the orientation has no room for — `above` on a vertical diagram, `left` on a horizontal one — is *not* an error: it is dropped back to that default, and a warning naming the replica and the item is printed above the diagram.  So flipping a finished diagram from horizontal to vertical is one edit, and the sides that no longer make sense say so instead of stopping the compile.  (Typst gives user code no way to reach the compiler's own warnings, hence a printed one.)
