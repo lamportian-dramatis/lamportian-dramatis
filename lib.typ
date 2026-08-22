@@ -125,7 +125,7 @@
 /// `position` puts that label on one side of the timeline: `above` or `below` on a horizontal diagram,
 /// `left` or `right` on a vertical one, with `size` setting its text size.  Both fall back on the
 /// lane's own defaults -- see `replica` -- and then on the orientation's default side, at the
-/// diagram's text size.  A side the orientation has no room for is dropped, with a warning.
+/// diagram's text size.  A side the orientation has no room for is dropped and ignored.
 ///
 /// `displacement` slides the label along the timeline, out of being centred on its own dot: a ratio is
 /// taken against the label's own extent along that timeline -- its width when the timelines are rows,
@@ -447,72 +447,34 @@
   })
 }
 
-/// How the two legal sides of an orientation read in a warning, so the message names the spellings
-/// the caller should have reached for rather than the `top`/`bottom` the values happen to be.
-#let _side-names = (top: "`above`", bottom: "`below`", left: "`left`", right: "`right`")
-
 /// Drops every side that the orientation has no room for -- `above` on a vertical diagram, `left` on
-/// a horizontal one -- back to `auto`, so it falls through to the orientation's own default, and
-/// returns one warning per side dropped.  A misplacement is worth saying out loud but not worth
-/// failing on: a diagram that flips from horizontal to vertical would otherwise stop compiling on
-/// the first lane that named a side, which is the one edit the orientation exists to make easy.
+/// a horizontal one -- back to `auto`, so it falls through to the orientation's own default.  A
+/// misplacement is not worth failing on: a diagram that flips from horizontal to vertical would
+/// otherwise stop compiling on the first lane that named a side, which is the one edit the
+/// orientation exists to make easy.
+///
+/// It passes in silence, which is not the ideal.  The ideal is a compiler warning, and Typst gives
+/// user code no way to raise one; the alternative -- printing the complaint into the document -- puts
+/// it in front of the reader rather than the author, which is worse than saying nothing.
 #let _sanitise-sides(lanes, rows, orientation) = {
   let legal = _orientations.at(orientation).sides
-  let wanted = legal.map(side => _side-names.at(repr(side))).join(" or ")
-  // Closures cannot write to a binding outside themselves, so this builds the sentence and the loops
-  // below are what collect it.
-  let note = (what, side) => (
-    what
-      + ": "
-      + _side-names.at(repr(side))
-      + " is not a side of a "
-      + orientation
-      + " diagram, which wants "
-      + wanted
-      + " -- ignored"
-  )
-  let warnings = ()
   let out-lanes = ()
   for lane in lanes {
     if lane.position != auto and not legal.contains(lane.position) {
-      warnings.push(note("replica '" + lane.id + "'", lane.position))
       out-lanes.push((..lane, position: auto))
     } else {
       out-lanes.push(lane)
     }
   }
   let out-rows = ()
-  for (ri, row) in rows.enumerate() {
-    let out-row = ()
-    for it in row {
-      if it.at != auto and not legal.contains(it.at) {
-        warnings.push(note("replica '" + lanes.at(ri).id + "', " + it.kind, it.at))
-        out-row.push((..it, at: auto))
-      } else {
-        out-row.push(it)
-      }
-    }
-    out-rows.push(out-row)
+  for row in rows {
+    out-rows.push(row.map(it => if it.at != auto and not legal.contains(it.at) {
+      (..it, at: auto)
+    } else {
+      it
+    }))
   }
-  (lanes: out-lanes, rows: out-rows, warnings: warnings)
-}
-
-/// Typst has no channel for a compiler warning that user code can reach, so a warning has to be
-/// something the document shows.  It is rendered above the diagram, in the one colour nobody mistakes
-/// for part of the drawing, and every one of them goes away by removing or correcting the placement
-/// it names.
-#let _warnings-note(warnings) = {
-  if warnings.len() == 0 { return none }
-  block(
-    width: 100%,
-    inset: 0.5em,
-    stroke: 0.5pt + red,
-    text(
-      fill: red,
-      size: 0.8em,
-      for w in warnings [lamport-diagram: #w \ ],
-    ),
-  )
+  (lanes: out-lanes, rows: out-rows)
 }
 
 /// A replica lane, and the defaults the local events on it fall back on.  `name` is the id that the
@@ -727,8 +689,8 @@
 /// timelines out as rows and stack the replicas downwards, so a label sits `above` or `below` its
 /// lane and `above` by default; `vertical` (`downwards`) or `upwards` lay them out as columns and
 /// stack the replicas rightwards, so a label sits `left` or `right` of its lane and `right` by
-/// default.  A side the orientation has no room for is dropped back to that default, with a warning
-/// printed above the diagram.
+/// default.  A side the orientation has no room for is dropped back to that default and otherwise
+/// ignored.
 ///
 /// With a `caption` the result is a `figure`; without one it is the bare drawing.  `col-gap` is the
 /// spacing between two columns of logical time and `row-gap` that between two lanes, both in canvas
@@ -1115,8 +1077,5 @@
     align(center, drawing)
   })
 
-  // Any warning goes above the diagram rather than inside it, so it cannot be mistaken for a label
-  // and does not shift a single mark of what it is warning about.
-  _warnings-note(checked.warnings)
   if caption == none { body } else { figure(body, caption: caption, kind: image, supplement: auto) }
 }
