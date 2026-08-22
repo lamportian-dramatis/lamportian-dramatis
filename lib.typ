@@ -1,7 +1,7 @@
-// lamportian-dramatis -- Lamport diagrams for replicated systems: one horizontal timeline per
-// replica, local events as dots on that timeline, and arrows for the messages that carry events
-// from one replica to another.  The horizontal axis is logical time, in the sense of Lamport
-// clocks.
+// lamportian-dramatis -- Lamport diagrams for replicated systems: one timeline per replica, local
+// events as dots on that timeline, and arrows for the messages that carry events from one replica
+// to another.  The axis the timelines run along is logical time, in the sense of Lamport clocks;
+// `orientation` says which way it points, and the replicas stack across it.
 //
 // Pre-1.0: nothing here is a stable API until 1.0.0.  Argument names, defaults and the shape of
 // what these helpers return are all still open, and may break between 0.x releases.
@@ -26,11 +26,57 @@
   rgb("#7c3aed"),
 )
 
-/// Which side of a timeline a label sits on.  These are `top` and `bottom` under names that read
-/// better for a diagram of one horizontal line per replica, and they are those same values, so either
-/// spelling works wherever a side is asked for.
+/// Which side of a timeline a label sits on.  `above` and `below` are `top` and `bottom` under names
+/// that read better for a diagram of one horizontal line per replica, and they are those same values,
+/// so either spelling works wherever a side is asked for.  `left` and `right` are re-exported for the
+/// vertical orientations, so one import line covers every side a diagram may ask for.
 #let above = top
 #let below = bottom
+#let left = left
+#let right = right
+
+/// Which way logical time runs.  `rightwards` and `leftwards` lay the timelines out horizontally and
+/// stack the replicas top to bottom; `downwards` and `upwards` lay them out vertically and stack the
+/// replicas left to right.  `horizontal` and `vertical` are the two that need no thinking about, and
+/// are `rightwards` and `downwards` under a shorter name.  Plain strings work everywhere an
+/// orientation is asked for, so `orientation: "vertical"` needs no import.
+#let rightwards = "rightwards"
+#let leftwards = "leftwards"
+#let downwards = "downwards"
+#let upwards = "upwards"
+#let horizontal = rightwards
+#let vertical = downwards
+
+/// What each orientation means to the drawing.  `time` is the unit direction of increasing logical
+/// time and `lane` that of increasing replica index, both in canvas coordinates; `sides` are the two
+/// sides a label may sit on, near lane 0 first, so the second of them is this orientation's default
+/// side.  `along` names the dimension of a label that runs along the timelines, which is what a ratio
+/// displacement is taken against, and `name-anchor` puts a replica's own name just off the start of
+/// its lane.
+#let _orientations = (
+  rightwards: (time: (1, 0), lane: (0, -1), sides: (top, bottom), along: "width", name-anchor: "east"),
+  leftwards: (time: (-1, 0), lane: (0, -1), sides: (top, bottom), along: "width", name-anchor: "west"),
+  downwards: (time: (0, -1), lane: (1, 0), sides: (left, right), along: "height", name-anchor: "south"),
+  upwards: (time: (0, 1), lane: (1, 0), sides: (left, right), along: "height", name-anchor: "north"),
+)
+
+/// The canonical name of an orientation: the two shorthands resolve to the direction they stand for,
+/// and anything else is a misspelling worth failing on.
+#let _orientation(value) = {
+  let name = if value == "horizontal" { rightwards } else if value == "vertical" { downwards } else {
+    value
+  }
+  assert(
+    type(name) == str and name in _orientations,
+    message: "lamport-diagram: `orientation` must be one of `horizontal`, `vertical`, `rightwards`, "
+      + "`leftwards`, `downwards` or `upwards`",
+  )
+  name
+}
+
+/// Every side a label may be asked to sit on, in any orientation.  Which two of them are legal is the
+/// diagram's business, since only there is the orientation known.
+#let _sides = (top, bottom, left, right)
 
 /// Reads the optional text size of a point's own label, which must be a length -- `size: 0.8em`
 /// spares the caller a `#text(0.8em)[...]` wrapper around the label.
@@ -48,15 +94,19 @@
 #let _is-displacement(value) = value == auto or value == 0 or type(value) in (length, ratio)
 
 /// A local event on a replica's timeline.  Its body is the label -- content or a plain string -- and
-/// `position` puts that label `above` or `below` the timeline, `size` sets its text size.  Both fall
-/// back on the lane's own defaults -- see `replica` -- and then on `above` at the diagram's text size.
+/// `position` puts that label on one side of the timeline: `above` or `below` on a horizontal diagram,
+/// `left` or `right` on a vertical one, with `size` setting its text size.  Both fall back on the
+/// lane's own defaults -- see `replica` -- and then on the orientation's default side, at the
+/// diagram's text size.  A side the orientation has no room for is dropped, with a warning.
 ///
 /// `displacement` slides the label along the timeline, out of being centred on its own dot: a ratio is
-/// taken against the label's own width, so `+50%` leaves the label's left edge over the dot and `-50%`
-/// its right edge, while a length is an exact offset and `0` (or `0%`) centres it.  Left to itself it
-/// is `auto`: the lane's default, and failing that centred -- except for a lane's opening event, which
-/// is nudged right by `_first-event-displacement` so its label does not crowd the replica name to its
-/// left.  The dot itself never moves -- it is the event's place in time, which the layout solves for.
+/// taken against the label's own extent along that timeline -- its width when the timelines are rows,
+/// its height when they are columns -- so `+50%` leaves the label's trailing edge over the dot and
+/// `-50%` its leading edge, while a length is an exact offset and `0` (or `0%`) centres it.  Left to
+/// itself it is `auto`: the lane's default, and failing that centred -- except for a lane's opening
+/// event, which is nudged forward in time by `_first-event-displacement` so its label does not crowd
+/// the replica name just before it.  The dot itself never moves -- it is the event's place in time,
+/// which the layout solves for.
 ///
 /// `width` wraps the label to a fixed width instead of letting it run along the timeline on one line,
 /// which is what keeps a long label from crowding its neighbours.  It must be named: a bare length is
@@ -69,10 +119,10 @@
 /// crowding the glyphs.  `auto` takes `_label-halo`, a length sets an exact reach, and `none` drops
 /// the backdrop altogether, for a label that should let whatever is behind it show through.
 ///
-/// Arguments are told apart by type, so they may come in any order and every one of them is optional:
-/// `event(below, +50%)[AddFile1]` and `event(+50%, below, "AddFile1")` are the same event.  For the
-/// common case of a label and nothing else, bare content or a bare string in an `events` array is
-/// shorthand, so `[AddFile1]`, `"AddFile1"` and `event[AddFile1]` are the same event too.
+/// Arguments are told apart by type, so they may come in any order and every one of them is
+/// optional: `event(below, +50%)[Event1]` and `event(+50%, below, "Event1")` are the same event.
+/// For the common case of a label and nothing else, bare content or a bare string in an `events`
+/// array is shorthand, so `[Event1]`, `"Event1"` and `event[Event1]` are the same event too.
 #let event(..args) = {
   for key in args.named().keys() {
     assert(
@@ -123,9 +173,11 @@
       body = arg
     }
   }
+  // Which sides are legal depends on the orientation, which only the diagram knows, so the check
+  // that narrows these four to two -- and warns about the ones it drops -- happens there.
   assert(
-    position == auto or position == above or position == below,
-    message: "lamport-diagram: event `position` must be `above` or `below`",
+    position == auto or position in _sides,
+    message: "lamport-diagram: event `position` must be `above`, `below`, `left` or `right`",
   )
   assert(
     _is-displacement(displacement),
@@ -166,8 +218,9 @@
 ///
 /// `displacement` nudges the point off the column it is solved into, exactly as it does on a `recv`,
 /// except that it defaults to `none` -- a send sits on its own column unless you say otherwise, since
-/// it is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever
-/// a vertical line would otherwise run through, or to separate two sends the solver put in one column.
+/// it is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever a
+/// straight run across the lanes would otherwise cross, or to separate two sends the solver put in
+/// one column.
 #let send(name, ..args) = {
   let displacement = args.named().at("displacement", default: none)
   assert(
@@ -191,9 +244,10 @@
 /// setting its text size.  Exactly one `send` and one `recv` must exist for each name.
 ///
 /// `displacement` nudges the point off the column it is solved into, in either direction: `1cm` by
-/// default, which is how far right of its `send` the point lands whenever nothing on its own replica
-/// pushes it further, and enough to lean the arrow forward.  `none` leaves it on its column, drawing a
-/// vertical arrow when the receiving replica has nothing else competing for that column.  A ratio
+/// default, which is how far past its `send` in time the point lands whenever nothing on its own
+/// replica pushes it further, and enough to lean the arrow forward.  `none` leaves it on its column,
+/// drawing an arrow straight across the lanes when the receiving replica has nothing else competing
+/// for that column.  A ratio
 /// (`50%`) is taken against the column gap.  The nudge is a drawing offset the column solver knows
 /// nothing about, so a negative one wide enough to put a receive visually behind its own send does not
 /// trip the causal-cycle check.
@@ -227,7 +281,8 @@
 /// An optional label for the point goes positionally -- `sync("push")[rolled back]` -- or as `body`,
 /// with `size` setting its text size; `label` instead labels the arrow itself, and `at` forces the
 /// side the point's label sits on.  `displacement` nudges this end off the shared column, which tilts
-/// the arrow away from whatever the vertical line would otherwise run through; it is a drawing offset
+/// the arrow away from whatever a straight run across the lanes would otherwise cross; it is a
+/// drawing offset
 /// and says nothing about the order.
 #let sync(name, ..args) = {
   let displacement = args.named().at("displacement", default: none)
@@ -270,7 +325,7 @@
     (type(size) == str and size in _gap-spans) or type(size) in (length, ratio),
     message: "lamport-diagram: gap size must be \"small\", \"medium\", \"large\", a length or a ratio",
   )
-  (kind: "gap", body: none, at: top, span: size)
+  (kind: "gap", body: none, at: auto, span: size)
 }
 
 /// Spacing to convey idle time passing: `n` columns of ordinary timeline, with nothing drawn on them.
@@ -295,7 +350,7 @@
     type(n) == int and n >= 1,
     message: "lamport-diagram: idle takes a whole number of columns, at least 1",
   )
-  (kind: "idle", body: none, at: top, advance: n)
+  (kind: "idle", body: none, at: auto, advance: n)
 }
 
 #let _item(it) = {
@@ -327,9 +382,9 @@
   )
 }
 
-/// How far right of its dot a lane's opening label sits by default.  A first label is the one with the
-/// replica name immediately to its left, and centring it there reads as if the name and the label
-/// belonged together; a fifth of its width is enough to break that reading.
+/// How far along its timeline a lane's opening label sits off its own dot by default.  A first label
+/// is the one with the replica name immediately before it, and centring it there reads as if the name
+/// and the label belonged together; a fifth of its extent is enough to break that reading.
 #let _first-event-displacement = 20%
 
 /// How far a label's backdrop reaches past the label's own box by default, in canvas centimetres.
@@ -364,12 +419,81 @@
   })
 }
 
+/// How the two legal sides of an orientation read in a warning, so the message names the spellings
+/// the caller should have reached for rather than the `top`/`bottom` the values happen to be.
+#let _side-names = (top: "`above`", bottom: "`below`", left: "`left`", right: "`right`")
+
+/// Drops every side that the orientation has no room for -- `above` on a vertical diagram, `left` on
+/// a horizontal one -- back to `auto`, so it falls through to the orientation's own default, and
+/// returns one warning per side dropped.  A misplacement is worth saying out loud but not worth
+/// failing on: a diagram that flips from horizontal to vertical would otherwise stop compiling on
+/// the first lane that named a side, which is the one edit the orientation exists to make easy.
+#let _sanitise-sides(lanes, rows, orientation) = {
+  let legal = _orientations.at(orientation).sides
+  let wanted = legal.map(side => _side-names.at(repr(side))).join(" or ")
+  // Closures cannot write to a binding outside themselves, so this builds the sentence and the loops
+  // below are what collect it.
+  let note = (what, side) => (
+    what
+      + ": "
+      + _side-names.at(repr(side))
+      + " is not a side of a "
+      + orientation
+      + " diagram, which wants "
+      + wanted
+      + " -- ignored"
+  )
+  let warnings = ()
+  let out-lanes = ()
+  for lane in lanes {
+    if lane.position != auto and not legal.contains(lane.position) {
+      warnings.push(note("replica '" + lane.id + "'", lane.position))
+      out-lanes.push((..lane, position: auto))
+    } else {
+      out-lanes.push(lane)
+    }
+  }
+  let out-rows = ()
+  for (ri, row) in rows.enumerate() {
+    let out-row = ()
+    for it in row {
+      if it.at != auto and not legal.contains(it.at) {
+        warnings.push(note("replica '" + lanes.at(ri).id + "', " + it.kind, it.at))
+        out-row.push((..it, at: auto))
+      } else {
+        out-row.push(it)
+      }
+    }
+    out-rows.push(out-row)
+  }
+  (lanes: out-lanes, rows: out-rows, warnings: warnings)
+}
+
+/// Typst has no channel for a compiler warning that user code can reach, so a warning has to be
+/// something the document shows.  It is rendered above the diagram, in the one colour nobody mistakes
+/// for part of the drawing, and every one of them goes away by removing or correcting the placement
+/// it names.
+#let _warnings-note(warnings) = {
+  if warnings.len() == 0 { return none }
+  block(
+    width: 100%,
+    inset: 0.5em,
+    stroke: 0.5pt + red,
+    text(
+      fill: red,
+      size: 0.8em,
+      for w in warnings [lamport-diagram: #w \ ],
+    ),
+  )
+}
+
 /// A replica lane, and the defaults the local events on it fall back on.  `name` is the id that the
 /// `events` dictionary keys on; `label` is what the diagram prints for the lane and `color` is its
 /// colour, either of which may also be given positionally -- colours are told apart by type.
 ///
 /// The rest are defaults for this lane's events, each still overridable event by event: `position`
-/// (`above` or `below`, positional too) is the side of the timeline their labels sit on, `size` their
+/// (`above`/`below` on a horizontal diagram, `left`/`right` on a vertical one, positional too) is the
+/// side of the timeline their labels sit on, `size` their
 /// text size, `displacement` how far they slide off their own dot, and `first-displacement` the same
 /// for the lane's opening event, the one that would otherwise crowd the replica name.  None of these
 /// reach a `send` or `recv` label: those keep their own arguments, and their side is chosen to stay
@@ -403,8 +527,8 @@
   let displacement = defaults.named().at("displacement", default: auto)
   let first-displacement = defaults.named().at("first-displacement", default: auto)
   assert(
-    position == auto or position == above or position == below,
-    message: "lamport-diagram: replica `position` must be `above` or `below`",
+    position == auto or position in _sides,
+    message: "lamport-diagram: replica `position` must be `above`, `below`, `left` or `right`",
   )
   assert(
     _is-displacement(displacement) and _is-displacement(first-displacement),
@@ -565,24 +689,36 @@
 
 /// A Lamport diagram of `replicas` exchanging `events`.
 ///
-/// `replicas` fixes the row order, top to bottom.  Each entry is an id string, a `replica` -- which
-/// also carries that lane's event defaults -- or a bare dictionary of the same fields.  `events` maps
-/// each replica id to that replica's local history in order: bare content or a bare string for a
-/// local event, or `event`, `send`, `recv` and `gap`.
+/// `replicas` fixes the lane order -- top to bottom in a horizontal diagram, left to right in a
+/// vertical one.  Each entry is an id string, a `replica` -- which also carries that lane's event
+/// defaults -- or a bare dictionary of the same fields.  `events` maps each replica id to that
+/// replica's local history in order: bare content or a bare string for a local event, or `event`,
+/// `send`, `recv` and `gap`.
 ///
-/// With a `caption` the result is a `figure`; without one it is the bare drawing.  `col-gap` and
-/// `row-gap` are canvas centimetres and are the knobs for a diagram that reads too cramped or too
-/// sparse.
+/// `orientation` says which way logical time runs: `horizontal` (`rightwards`) or `leftwards` lay the
+/// timelines out as rows and stack the replicas downwards, so a label sits `above` or `below` its
+/// lane and `below` by default; `vertical` (`downwards`) or `upwards` lay them out as columns and
+/// stack the replicas rightwards, so a label sits `left` or `right` of its lane and `right` by
+/// default.  A side the orientation has no room for is dropped back to that default, with a warning
+/// printed above the diagram.
+///
+/// With a `caption` the result is a `figure`; without one it is the bare drawing.  `col-gap` is the
+/// spacing between two columns of logical time and `row-gap` that between two lanes, both in canvas
+/// centimetres, and they are the knobs for a diagram that reads too cramped or too sparse.
 #let lamport-diagram(
   caption: none,
   replicas: (),
   events: (:),
+  orientation: horizontal,
   col-gap: 2.0,
   row-gap: 1.5,
   text-size: 0.62em,
   dot: 0.095,
   message-stroke: 0.9pt + luma(110),
 ) = {
+  let orientation = _orientation(orientation)
+  let axes = _orientations.at(orientation)
+  let (near-side, far-side) = axes.sides
   let lanes = replicas.enumerate().map(((i, spec)) => _replica(spec, i))
   for lane in lanes {
     assert(
@@ -597,7 +733,11 @@
     )
   }
 
-  let rows = lanes.map(lane => _resolve-defaults(events.at(lane.id).map(_item), lane))
+  // Sides are narrowed to the two this orientation has room for *before* the lane defaults settle,
+  // so a dropped side falls through the same way an unstated one does.
+  let checked = _sanitise-sides(lanes, lanes.map(lane => events.at(lane.id).map(_item)), orientation)
+  let lanes = checked.lanes
+  let rows = checked.rows.enumerate().map(((ri, row)) => _resolve-defaults(row, lanes.at(ri)))
   let msgs = _messages(rows)
   let exchanges = _exchanges(rows)
   for name in exchanges.keys() {
@@ -617,32 +757,70 @@
     .fold(1, calc.max)
 
   let send-dot = dot * 0.7
-  let x-of = c => c * col-gap
-  let y-of = r => -r * row-gap
+  // The two axes of the drawing, both in canvas centimetres: `t` runs along the timelines and `r`
+  // across them.  Everything below is written in those terms and only `point` knows which way round
+  // they are on the page, so the four orientations share one body of drawing code.
+  let t-of = c => c * col-gap
+  let point = (t, r) => (
+    t * axes.time.at(0) + r * row-gap * axes.lane.at(0),
+    t * axes.time.at(1) + r * row-gap * axes.lane.at(1),
+  )
   let lane-start = -0.18
 
-  // Label sides for send/recv points default to the side the arrow does *not* occupy, so a vertical
-  // arrow never runs through its own endpoint labels.
+  // A label sits a fixed step off its lane, on whichever of the two sides it was given; both the step
+  // and the anchor are in page terms, since a side is.
+  let side-step = 0.3
+  let side-offset = side => if side == top {
+    (0, side-step)
+  } else if side == bottom {
+    (0, -side-step)
+  } else if side == left {
+    (-side-step, 0)
+  } else {
+    (side-step, 0)
+  }
+  let side-anchor = side => if side == top {
+    "south"
+  } else if side == bottom {
+    "north"
+  } else if side == left {
+    "east"
+  } else {
+    "west"
+  }
+
+  // Label sides for send/recv points default to the side the arrow does *not* occupy, so an arrow
+  // running straight across the lanes never runs through its own endpoint labels.  `near-side` is the
+  // one towards the first replica, `far-side` the one away from it -- `above`/`below` on a horizontal
+  // diagram, `left`/`right` on a vertical one -- and `far-side` is also what a label falls back on
+  // when nothing else has a say.
   let side-of = (it, ri) => {
+    // The lane this item's arrow runs towards, if it has one.
+    let other = if it.kind == "send" {
+      msgs.at(it.name).recv.at(0)
+    } else if it.kind == "recv" {
+      msgs.at(it.name).send.at(0)
+    } else if it.kind == "sync" {
+      exchanges.at(it.name).ends.filter(((r, i)) => r != ri).at(0).at(0)
+    } else {
+      none
+    }
     if it.at != auto {
       it.at
-    } else if it.kind == "send" {
-      if msgs.at(it.name).recv.at(0) > ri { top } else { bottom }
-    } else if it.kind == "recv" {
-      if msgs.at(it.name).send.at(0) < ri { bottom } else { top }
-    } else if it.kind == "sync" {
-      // The other end of the exchange is the one this replica's arrow runs towards.
-      let other = exchanges.at(it.name).ends.filter(((r, i)) => r != ri).at(0)
-      if other.at(0) > ri { top } else { bottom }
+    } else if other == none {
+      far-side
+    } else if other > ri {
+      near-side
     } else {
-      top
+      far-side
     }
   }
 
-  // Replica names get a vertical strip of their own, left of every event label.  Without this a
-  // first-column label overhangs the start of its timeline and reads as sitting above the replica
-  // name rather than above its own dot, even though the two never touch.  Needs the laid-out width of
-  // each label, hence `context`; canvas units are centimetres, fixed by `length: 1cm` below.
+  // Replica names get a strip of their own, before the start of every lane and clear of every event
+  // label.  Without this a first-column label overhangs the start of its timeline and reads as
+  // belonging to the replica name rather than to its own dot, even though the two never touch.  Needs
+  // the laid-out size of each label, hence `context`; canvas units are centimetres, fixed by
+  // `length: 1cm` below.
   let drawing = context {
     // A point's own text size, and any displacement or gap span given as a length, resolve here
     // against the diagram's text size -- `0.8em` means 0.8 of *this* diagram's em, not the caller's.
@@ -669,11 +847,17 @@
     } else {
       0.0
     }
-    let x-at = (ri, ii) => x-of(cols.at(ri).at(ii)) + offset-of(rows.at(ri).at(ii))
+    let t-at = (ri, ii) => t-of(cols.at(ri).at(ii)) + offset-of(rows.at(ri).at(ii))
+    let at = (ri, ii) => point(t-at(ri, ii), ri)
+    // How much of a label runs along its timeline: its width when the timelines are rows, its height
+    // when they are columns.  This is what a ratio displacement slides the label by, and what the
+    // replica names have to stay clear of.
+    let extent-of = it => measure(label-of(it)).at(axes.along) / 1cm
     // A label is centred on its mark until displaced.  A ratio slides it by that much of its own
-    // width, which is what makes `+50%` line its left edge up with the mark it belongs to.
+    // extent along the timeline, which is what makes `+50%` line its trailing edge up with the mark it
+    // belongs to.
     let label-offset-of = it => if type(it.label-displacement) == ratio {
-      it.label-displacement / 100% * measure(label-of(it)).width / 1cm
+      it.label-displacement / 100% * extent-of(it)
     } else if type(it.label-displacement) == length {
       it.label-displacement.to-absolute() / 1cm
     } else {
@@ -689,20 +873,21 @@
       it.halo.to-absolute() / 1cm
     }
 
-    let left-reach = lane-start
-    let right-reach = x-of(ncols - 1)
+    // Both reaches are in time, not on the page: how far back the earliest label runs and how far
+    // forward the last mark does.
+    let back-reach = lane-start
+    let fore-reach = t-of(ncols - 1)
     for (ri, row) in rows.enumerate() {
       for (ii, it) in row.enumerate() {
-        let x = x-at(ri, ii)
-        right-reach = calc.max(right-reach, x)
+        let t = t-at(ri, ii)
+        fore-reach = calc.max(fore-reach, t)
         if it.body != none {
-          let half-width = measure(label-of(it)).width / 1cm / 2
-          left-reach = calc.min(left-reach, x + label-offset-of(it) - half-width)
+          back-reach = calc.min(back-reach, t + label-offset-of(it) - extent-of(it) / 2)
         }
       }
     }
-    let name-x = left-reach - 0.3
-    let lane-end = right-reach + col-gap * 0.55
+    let name-t = back-reach - 0.3
+    let lane-end = fore-reach + col-gap * 0.55
 
     cetz.canvas(length: 1cm, {
       import cetz.draw: *
@@ -713,8 +898,8 @@
       for (_, m) in msgs {
         let (sr, si) = m.send
         let (rr, rii) = m.recv
-        let (sx, sy) = (x-at(sr, si), y-of(sr))
-        let (rx, ry) = (x-at(rr, rii), y-of(rr))
+        let (sx, sy) = at(sr, si)
+        let (rx, ry) = at(rr, rii)
         let (dx, dy) = (rx - sx, ry - sy)
         let len = calc.sqrt(dx * dx + dy * dy)
         // Clearance is per-endpoint: the smaller send mark would otherwise be left orbited by a gap.
@@ -747,8 +932,8 @@
       // clearance for the two of them.
       for (_, x) in exchanges {
         let ((ar, ai), (br, bi)) = x.ends
-        let (ax, ay) = (x-at(ar, ai), y-of(ar))
-        let (bx, by) = (x-at(br, bi), y-of(br))
+        let (ax, ay) = at(ar, ai)
+        let (bx, by) = at(br, bi)
         let (dx, dy) = (bx - ax, by - ay)
         let len = calc.sqrt(dx * dx + dy * dy)
         let clear = dot + 0.07
@@ -781,11 +966,11 @@
         let cursor = lane-start
         for (ii, it) in rows.at(ri).enumerate() {
           if it.kind == "gap" {
-            let gx = x-at(ri, ii)
+            let gt = t-at(ri, ii)
             let half = span-of(it) / 2
-            runs.push((cursor, gx - half, false))
-            runs.push((gx - half, gx + half, true))
-            cursor = gx + half
+            runs.push((cursor, gt - half, false))
+            runs.push((gt - half, gt + half, true))
+            cursor = gt + half
           }
         }
         runs.push((cursor, lane-end, false))
@@ -821,21 +1006,19 @@
       // is solid even under an elided stretch: white on white shows nothing, and the dots drawn over
       // it still say the stretch is elided.
       for (ri, _) in lanes.enumerate() {
-        let y = y-of(ri)
         for (from, to, _) in runs-of(ri) {
-          line((from, y), (to, y), stroke: halo)
+          line(point(from, ri), point(to, ri), stroke: halo)
         }
         for (ii, it) in rows.at(ri).enumerate() {
           let r = mark-radius(it)
           if r != none {
-            circle((x-at(ri, ii), y), radius: r + halo-reach, fill: halo-paint, stroke: none)
+            circle(at(ri, ii), radius: r + halo-reach, fill: halo-paint, stroke: none)
           }
         }
       }
 
       // Layer 2: the timelines, their marks and their labels.
       for (ri, lane) in lanes.enumerate() {
-        let y = y-of(ri)
         let solid = lane.color + 1.1pt
         let elided = (paint: lane.color, thickness: 1.1pt, dash: "dotted")
 
@@ -845,8 +1028,8 @@
         let runs = runs-of(ri)
         for (ii, (from, to, is-elided)) in runs.enumerate() {
           line(
-            (from, y),
-            (to, y),
+            point(from, ri),
+            point(to, ri),
             stroke: if is-elided { elided } else { solid },
             mark: if ii == runs.len() - 1 {
               (end: "stealth", fill: lane.color, scale: 0.9)
@@ -855,22 +1038,22 @@
         }
 
         content(
-          (name-x, y),
-          anchor: "east",
+          point(name-t, ri),
+          anchor: axes.name-anchor,
           text(fill: lane.color, weight: "medium", lane.label),
         )
 
         for (ii, it) in rows.at(ri).enumerate() {
-          let x = x-at(ri, ii)
+          let mark = at(ri, ii)
           // Hollow marks a point where the replica touches the network, solid a purely local step, and
           // a send is drawn smaller than the receive it feeds so the two ends of a message stay
           // tellable apart on their own, without tracing the arrow between them.
           if it.kind == "send" {
-            circle((x, y), radius: mark-radius(it), fill: white, stroke: lane.color + 1pt)
+            circle(mark, radius: mark-radius(it), fill: white, stroke: lane.color + 1pt)
           } else if it.kind in ("recv", "sync") {
-            circle((x, y), radius: mark-radius(it), fill: white, stroke: lane.color + 1.1pt)
+            circle(mark, radius: mark-radius(it), fill: white, stroke: lane.color + 1.1pt)
           } else if it.kind == "event" {
-            circle((x, y), radius: mark-radius(it), fill: lane.color, stroke: none)
+            circle(mark, radius: mark-radius(it), fill: lane.color, stroke: none)
           }
           if it.body != none {
             let side = side-of(it, ri)
@@ -878,9 +1061,13 @@
             // drawn, and one crossing this lane has to break around the label rather than run through
             // its glyphs.  `halo: none` drops it, for a label meant to let what is behind show through.
             let halo-pad = label-halo-of(it)
+            // The displacement slides the label along the timeline; the side then steps it off the
+            // lane, which is a page direction and so does not turn with the orientation.
+            let base = point(t-at(ri, ii) + label-offset-of(it), ri)
+            let step = side-offset(side)
             content(
-              (x + label-offset-of(it), y + if side == bottom { -0.3 } else { 0.3 }),
-              anchor: if side == bottom { "north" } else { "south" },
+              (base.at(0) + step.at(0), base.at(1) + step.at(1)),
+              anchor: side-anchor(side),
               frame: if halo-pad == none { none } else { "rect" },
               fill: white,
               stroke: none,
@@ -900,5 +1087,8 @@
     align(center, drawing)
   })
 
+  // Any warning goes above the diagram rather than inside it, so it cannot be mistaken for a label
+  // and does not shift a single mark of what it is warning about.
+  _warnings-note(checked.warnings)
   if caption == none { body } else { figure(body, caption: caption, kind: image, supplement: auto) }
 }
