@@ -58,8 +58,16 @@
 /// for all four.  What a gap has to make room for is text, and text runs across the page whichever way
 /// the diagram does: the wider default belongs to whichever axis lies horizontally, so turning a
 /// diagram on its side turns the two over with it.
+///
+/// `first-displacement` is how far a lane's opening label slides off its own dot, as a ratio of the
+/// label's extent along the timeline.  A horizontal lane wants the nudge: its replica name sits
+/// immediately to the label's left, and centring the label on the first dot reads as if the name and
+/// the label belonged together.  A vertical lane does not: the name sits before the lane *in time*
+/// and the label beside it, so the two were never in danger of reading as one -- and a fifth of a
+/// line's height would be too small to see even if they were.
 #let _orientations = (
   rightwards: (
+    first-displacement: 20%,
     col-gap: 2.0,
     row-gap: 1.5,
     time: (1, 0),
@@ -70,6 +78,7 @@
     name-anchor: "east",
   ),
   leftwards: (
+    first-displacement: 20%,
     col-gap: 2.0,
     row-gap: 1.5,
     time: (-1, 0),
@@ -80,6 +89,7 @@
     name-anchor: "west",
   ),
   downwards: (
+    first-displacement: 0%,
     col-gap: 1.5,
     row-gap: 2.4,
     time: (0, -1),
@@ -90,6 +100,7 @@
     name-anchor: "south",
   ),
   upwards: (
+    first-displacement: 0%,
     col-gap: 1.5,
     row-gap: 2.4,
     time: (0, 1),
@@ -166,7 +177,7 @@
 /// its height when they are columns -- so `+50%` leaves the label's trailing edge over the dot and
 /// `-50%` its leading edge, while a length is an exact offset and `0` (or `0%`) centres it.  Left to
 /// itself it is `auto`: the lane's default, and failing that centred -- except for a lane's opening
-/// event, which is nudged forward in time by `_first-event-displacement` so its label does not crowd
+/// event, which is nudged forward in time by the orientation's `first-displacement` so it does not crowd
 /// the replica name just before it.  The dot itself never moves -- it is the event's place in time,
 /// which the layout solves for.
 ///
@@ -453,11 +464,6 @@
   )
 }
 
-/// How far along its timeline a lane's opening label sits off its own dot by default.  A first label
-/// is the one with the replica name immediately before it, and centring it there reads as if the name
-/// and the label belonged together; a fifth of its extent is enough to break that reading.
-#let _first-event-displacement = 20%
-
 /// How far a label's backdrop reaches past the label's own box by default, in canvas centimetres.
 /// It matches the reach of the disc under a mark, so a label and a dot break an arrow behind them by
 /// the same amount and the two read as sitting on one plane.
@@ -467,13 +473,13 @@
 /// argument given on the event itself always wins, and only a lane's opening event takes
 /// `first-displacement`.  Items that are not events pass through -- a message label's side is the
 /// drawing's business, since it has an arrow to stay clear of, not a lane default's.
-#let _resolve-defaults(row, lane) = {
+#let _resolve-defaults(row, lane, first-displacement) = {
   row.enumerate().map(((ii, it)) => {
     if it.kind != "event" {
       (..it, label-displacement: 0%)
     } else {
       let inherited = if ii == 0 { lane.first-displacement } else { lane.displacement }
-      let fallback = if ii == 0 { _first-event-displacement } else { 0% }
+      let fallback = if ii == 0 { first-displacement } else { 0% }
       (
         ..it,
         at: if it.at == auto { lane.position } else { it.at },
@@ -822,7 +828,7 @@
   // so a dropped side falls through the same way an unstated one does.
   let checked = _sanitise-sides(lanes, lanes.map(lane => events.at(lane.id).map(_item)), orientation)
   let lanes = checked.lanes
-  let rows = checked.rows.enumerate().map(((ri, row)) => _resolve-defaults(row, lanes.at(ri)))
+  let rows = checked.rows.enumerate().map(((ri, row)) => _resolve-defaults(row, lanes.at(ri), axes.first-displacement))
   let msgs = _messages(rows)
   let exchanges = _exchanges(rows)
   for name in exchanges.keys() {
@@ -1034,6 +1040,36 @@
       }
       (ri, ii)
     }
+    // The radius of the mark an item draws, and `none` for the items that draw none.  The backdrop
+    // and the mark itself both need it, and they have to agree or the ring goes lopsided.
+    let mark-radius = it => if it.kind == "send" {
+      send-dot
+    } else if it.kind in ("recv", "sync", "event") {
+      dot
+    } else {
+      none
+    }
+
+    // Everything it takes to draw one mark, as arguments ready to spread into `circle`.  Hollow says
+    // the replica touches the network here and solid says a purely local step, and a send is drawn
+    // smaller than the receive it feeds so the two ends of a message stay tellable apart on their own.
+    //
+    // The diagram draws its marks from this and so does `mark-args`, which is the point of its being
+    // one function: an overlay restating a mark cannot fall out of step with the mark it restates.
+    let mark-args-of = (ri, ii) => {
+      let it = rows.at(ri).at(ii)
+      let radius = mark-radius(it)
+      if radius == none {
+        none
+      } else if it.kind == "send" {
+        arguments(at(ri, ii), radius: radius, fill: white, stroke: lanes.at(ri).color + 1pt)
+      } else if it.kind in ("recv", "sync") {
+        arguments(at(ri, ii), radius: radius, fill: white, stroke: lanes.at(ri).color + 1.1pt)
+      } else {
+        arguments(at(ri, ii), radius: radius, fill: lanes.at(ri).color, stroke: none)
+      }
+    }
+
     let locator = (
       mark: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
@@ -1044,6 +1080,19 @@
         cols.at(ri).at(ii)
       },
       point: (time, lane) => point(t-of(time), lane-of(lane)),
+      mark-args: (replica, key) => {
+        let (ri, ii) = index-of(replica, key)
+        mark-args-of(ri, ii)
+      },
+      color-of: replica => {
+        let ri = lane-of(replica)
+        assert(
+          type(ri) == int and ri >= 0 and ri < lanes.len(),
+          message: "lamport-diagram: a colour belongs to a replica, so name one rather than a lane "
+            + "between two of them",
+        )
+        lanes.at(ri).color
+      },
       span: (lane-start / col-gap, lane-end / col-gap),
       replicas: lanes.map(l => l.id),
       ncols: ncols,
@@ -1156,16 +1205,6 @@
         runs
       }
 
-      // The radius of the mark an item draws, and `none` for the items that draw none.  The backdrop
-      // and the mark itself both need it, and they have to agree or the ring goes lopsided.
-      let mark-radius = it => if it.kind == "send" {
-        send-dot
-      } else if it.kind in ("recv", "sync", "event") {
-        dot
-      } else {
-        none
-      }
-
       // A lane occupies a strip, not just a line, and the whole strip has to erase what runs behind
       // it: an arrow crossing a lane it has no endpoint on must read as passing *under* that lane,
       // marks included.  A dot is wider than the line's own halo, so without a disc of its own it
@@ -1226,19 +1265,12 @@
       }
       layer-of(timelines)
 
-      // The marks.
-      for (ri, lane) in lanes.enumerate() {
-        for (ii, it) in rows.at(ri).enumerate() {
-          let mark = at(ri, ii)
-          // Hollow marks a point where the replica touches the network, solid a purely local step, and
-          // a send is drawn smaller than the receive it feeds so the two ends of a message stay
-          // tellable apart on their own, without tracing the arrow between them.
-          if it.kind == "send" {
-            circle(mark, radius: mark-radius(it), fill: white, stroke: lane.color + 1pt)
-          } else if it.kind in ("recv", "sync") {
-            circle(mark, radius: mark-radius(it), fill: white, stroke: lane.color + 1.1pt)
-          } else if it.kind == "event" {
-            circle(mark, radius: mark-radius(it), fill: lane.color, stroke: none)
+      // The marks, each drawn from the spec `mark-args` hands to an overlay.
+      for (ri, _) in lanes.enumerate() {
+        for (ii, _) in rows.at(ri).enumerate() {
+          let spec = mark-args-of(ri, ii)
+          if spec != none {
+            circle(..spec)
           }
         }
       }
