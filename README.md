@@ -23,36 +23,37 @@ That is [`gallery/overlays.typ`](gallery/overlays.typ), a complete standalone do
     "A": ([`A.1`], sync("boot"), event(id: "a2")[`A.2`], sync("a-pushes"), sync("a-catches-up")),
   ),
   overlays: (
-    // The future cone of `A.2`: the part of the diagram that event can still reach.  It opens one
-    // lane per column from where the event happened, and once it has taken in every replica there is
-    // nothing left to open into, so it runs on as a band.  Over the backdrops, so the lanes do not
-    // fade a stripe through it, and still under every timeline.
     backdrops: d => {
-      let (column, point, replicas, span, ..) = d
+      let (column, point, replicas, span, col-gap, ..) = d
       let (_, ends) = span
-      let t = column("A", "a2")
-      let lane = replicas.position(r => r == "A")
-      let edge = replicas.len() - 1 - lane + 0.4
-      let wash = red.transparentize(93%)
+      let lane-of = id => replicas.position(r => r == id)
+      let (a, s, c) = (lane-of("A"), lane-of("S"), lane-of("C"))
+      let apex = column("A", "a2")
+      let crossing = column("C", -1) + 1 / col-gap
+      let towards-c = (c - a) / (crossing - apex)
       line(
-        point(t, lane),
-        point(t + edge, lane - edge),
-        point(t + edge, lane + edge),
+        point(apex, a),
+        point(column("S", "a-pushes"), s - 0.4),
+        point(ends, s - 0.4),
+        point(ends, a + towards-c * (ends - apex)),
         close: true,
-        fill: wash,
-        stroke: none,
-      )
-      rect(
-        point(calc.min(t + edge, ends), lane - edge),
-        point(ends, lane + edge),
-        fill: wash,
+        fill: red.transparentize(93%),
         stroke: none,
       )
     },
     // Over the dot, under its label.
     marks: d => {
-      let (mark, dot, ..) = d
+      let (mark, dot, mark-args, ..) = d
+      let wash = red.transparentize(93%)
+
       circle(mark("A", "a2"), radius: dot * 3, stroke: red + 0.7pt)
+
+      // Make the inners of the events have the same `wash` color of the future cone
+      circle(..mark-args("S", 3), fill: wash)
+      circle(..mark-args("S", 4), fill: wash)
+      circle(..mark-args("S", 5), fill: wash)
+      circle(..mark-args("A", 4), fill: wash)
+      circle(..mark-args("A", 5), fill: wash)
     },
   ),
 )

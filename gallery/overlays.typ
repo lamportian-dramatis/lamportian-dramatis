@@ -12,29 +12,37 @@
     "A": ([`A.1`], sync("boot"), event(id: "a2")[`A.2`], sync("a-pushes"), sync("a-catches-up")),
   ),
   overlays: (
-    // The future cone of `A.2`: the part of the diagram that event can still reach.  It opens one
-    // lane per column from where the event happened, and once it has taken in every replica there is
-    // nothing left to open into, so it runs on as a band.  Over the backdrops, so the lanes do not
-    // fade a stripe through it, and still under every timeline.
+    // The future of `A.2`: every event it can reach.  A cone, but not one opening at a fixed angle
+    // -- what a diagram like this carries forward is messages, not light, so each edge of it is
+    // aimed at something the messages actually did.
+    //
+    // Towards S it is aimed at the exchange that tells S about `A.2`, so S is taken in exactly
+    // there, and it runs flat afterwards, S being the last lane that way.  Towards C it is aimed a
+    // centimetre past C's own last event: no event on that lane is in this future -- the message C
+    // receives was sent before S had heard of `A.2`, and nothing leaves S for C afterwards -- so
+    // the edge may cross that lane, but only where there is nothing left to cross into.
+    //
+    // `col-gap` is centimetres per column, so `1 / col-gap` is a centimetre said in columns, and it
+    // is the orientation's own value.  That is what lets this read the same whichever way time
+    // runs: no lengths on the page, only the diagram's own axes.
+    //
+    // Over the backdrops, so the lanes do not fade a stripe through it, and still under every
+    // timeline.
     backdrops: d => {
-      let (column, point, replicas, span, ..) = d
+      let (column, point, replicas, span, col-gap, ..) = d
       let (_, ends) = span
-      let t = column("A", "a2")
-      let lane = replicas.position(r => r == "A")
-      let edge = replicas.len() - 1 - lane + 0.4
-      let wash = red.transparentize(93%)
+      let lane-of = id => replicas.position(r => r == id)
+      let (a, s, c) = (lane-of("A"), lane-of("S"), lane-of("C"))
+      let apex = column("A", "a2")
+      let crossing = column("C", -1) + 1 / col-gap
+      let towards-c = (c - a) / (crossing - apex)
       line(
-        point(t, lane),
-        point(t + edge, lane - edge),
-        point(t + edge, lane + edge),
+        point(apex, a),
+        point(column("S", "a-pushes"), s - 0.4),
+        point(ends, s - 0.4),
+        point(ends, a + towards-c * (ends - apex)),
         close: true,
-        fill: wash,
-        stroke: none,
-      )
-      rect(
-        point(calc.min(t + edge, ends), lane - edge),
-        point(ends, lane + edge),
-        fill: wash,
+        fill: red.transparentize(93%),
         stroke: none,
       )
     },
@@ -51,7 +59,6 @@
       circle(..mark-args("S", 5), fill: wash)
       circle(..mark-args("A", 4), fill: wash)
       circle(..mark-args("A", 5), fill: wash)
-      circle(..mark-args("C", 3), fill: wash)
     },
   ),
 )
