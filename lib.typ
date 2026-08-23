@@ -162,6 +162,29 @@
   size
 }
 
+/// Reads the optional halo of a point's own label: how far its backdrop reaches past the label's own
+/// box.  `auto` takes `_label-halo`, a length sets an exact reach, and `none` drops the backdrop.
+#let _point-halo(args) = {
+  let halo = args.named().at("halo", default: auto)
+  assert(
+    halo == auto or halo == none or type(halo) == length,
+    message: "lamport-diagram: `halo` must be `auto`, `none` or a length, as in `halo: 2mm`",
+  )
+  halo
+}
+
+/// Reads the optional paint of a point's own label backdrop.  `auto` is the white that breaks
+/// whatever runs behind the label, `none` leaves the backdrop unpainted -- which keeps the halo, and
+/// so the label's own box, without hiding anything under it -- and a paint is used as given.
+#let _point-fill(args) = {
+  let fill = args.named().at("fill", default: auto)
+  assert(
+    fill == auto or fill == none or type(fill) in (color, gradient, tiling),
+    message: "lamport-diagram: `fill` must be `auto`, `none` or a paint, as in `fill: yellow`",
+  )
+  fill
+}
+
 /// Whether a value can serve as a label displacement: `auto` to inherit one, `0` or `0%` to sit
 /// centred, a ratio of the label's own width, or an exact length.
 #let _is-displacement(value) = value == auto or value == 0 or type(value) in (length, ratio)
@@ -192,6 +215,13 @@
 /// crowding the glyphs.  `auto` takes `_label-halo`, a length sets an exact reach, and `none` drops
 /// the backdrop altogether, for a label that should let whatever is behind it show through.
 ///
+/// `fill` is what that backdrop is painted with: white by default, which is what breaks an arrow
+/// behind the label, and any paint instead -- a wash an overlay also uses, say, so the label reads as
+/// part of it rather than as a hole punched in it.  `none` leaves the backdrop unpainted, which is
+/// `halo: none` with the label's box kept: nothing shows the reach, but a displacement still
+/// measures against it.  A translucent paint hides no more than it says, so an arrow behind a washed
+/// label still shows through it.
+///
 /// Arguments are told apart by type, so they may come in any order and every one of them is
 /// optional: `event(below, +50%)[Event1]` and `event(+50%, below, "Event1")` are the same event.
 /// For the common case of a label and nothing else, bare content or a bare string in an `events`
@@ -199,7 +229,7 @@
 #let event(..args) = {
   for key in args.named().keys() {
     assert(
-      key in ("position", "displacement", "body", "size", "width", "halo", "id"),
+      key in ("position", "displacement", "body", "size", "width", "halo", "fill", "id"),
       message: "lamport-diagram: event has no `" + key + "` parameter",
     )
   }
@@ -207,11 +237,6 @@
   assert(
     width == none or type(width) == length,
     message: "lamport-diagram: event `width` must be a length, as in `width: 2.5cm`",
-  )
-  let halo = args.named().at("halo", default: auto)
-  assert(
-    halo == auto or halo == none or type(halo) == length,
-    message: "lamport-diagram: event `halo` must be `auto`, `none` or a length, as in `halo: 2mm`",
   )
   let id = args.named().at("id", default: none)
   assert(
@@ -268,7 +293,8 @@
     at: position,
     size: _point-size(args),
     width: width,
-    halo: halo,
+    halo: _point-halo(args),
+    fill: _point-fill(args),
     label-displacement: displacement,
   )
 }
@@ -300,6 +326,9 @@
 /// it is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever a
 /// straight run across the lanes would otherwise cross, or to separate two sends the solver put in
 /// one column.
+///
+/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
+/// past the label's own box, and what it is painted with.
 #let send(name, ..args) = {
   let displacement = args.named().at("displacement", default: none)
   assert(
@@ -309,8 +338,14 @@
   (
     kind: "send",
     name: name,
-    body: _point-body(args, "send", ("body", "size", "label", "at", "delay", "displacement")),
+    body: _point-body(
+      args,
+      "send",
+      ("body", "size", "label", "at", "delay", "displacement", "halo", "fill"),
+    ),
     size: _point-size(args),
+    halo: _point-halo(args),
+    fill: _point-fill(args),
     label: args.named().at("label", default: none),
     at: args.named().at("at", default: auto),
     delay: args.named().at("delay", default: 0),
@@ -330,6 +365,9 @@
 /// (`50%`) is taken against the column gap.  The nudge is a drawing offset the column solver knows
 /// nothing about, so a negative one wide enough to put a receive visually behind its own send does not
 /// trip the causal-cycle check.
+///
+/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
+/// past the label's own box, and what it is painted with.
 #let recv(name, ..args) = {
   let displacement = args.named().at("displacement", default: 1cm)
   assert(
@@ -339,8 +377,10 @@
   (
     kind: "recv",
     name: name,
-    body: _point-body(args, "recv", ("body", "size", "at", "displacement")),
+    body: _point-body(args, "recv", ("body", "size", "at", "displacement", "halo", "fill")),
     size: _point-size(args),
+    halo: _point-halo(args),
+    fill: _point-fill(args),
     at: args.named().at("at", default: auto),
     displacement: displacement,
   )
@@ -363,6 +403,9 @@
 /// the arrow away from whatever a straight run across the lanes would otherwise cross; it is a
 /// drawing offset
 /// and says nothing about the order.
+///
+/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
+/// past the label's own box, and what it is painted with.
 #let sync(name, ..args) = {
   let displacement = args.named().at("displacement", default: none)
   assert(
@@ -372,8 +415,10 @@
   (
     kind: "sync",
     name: name,
-    body: _point-body(args, "sync", ("body", "size", "at", "displacement", "label")),
+    body: _point-body(args, "sync", ("body", "size", "at", "displacement", "label", "halo", "fill")),
     size: _point-size(args),
+    halo: _point-halo(args),
+    fill: _point-fill(args),
     label: args.named().at("label", default: none),
     at: args.named().at("at", default: auto),
     displacement: displacement,
@@ -448,6 +493,7 @@
     size: d.at("size", default: none),
     width: d.at("width", default: none),
     halo: d.at("halo", default: auto),
+    fill: d.at("fill", default: auto),
     label: d.at("label", default: none),
     name: d.at("name", default: none),
     // What an overlay addresses this point by.  A send, recv or sync is known by the message name
@@ -1293,7 +1339,7 @@
               (base.at(0) + step.at(0), base.at(1) + step.at(1)),
               anchor: side-anchor(side),
               frame: if halo-pad == none { none } else { "rect" },
-              fill: white,
+              fill: if it.fill == auto { white } else { it.fill },
               stroke: none,
               padding: if halo-pad == none { 0 } else { halo-pad },
               text(fill: lane.color, label-of(it)),

@@ -2,15 +2,32 @@
 #import draw: *
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
-#set text(size: 10pt)
+#set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))
+#let wash = red.transparentize(93%)
 
 #lamport-diagram(
   replicas: (replica("S", color: luma(0)), "A", "C"),
   orientation: vertical,
   events: (
-    "S": (sync("boot"), send("c-reads"), sync("a-pushes"), recv("c-pushes"), sync("a-catches-up")),
-    "C": (recv("c-reads"), event(id: "c1")[`C.1`], send("c-pushes")),
-    "A": ([`A.1`], sync("boot"), event(id: "a2")[`A.2`], sync("a-pushes"), sync("a-catches-up")),
+    "S": (
+      sync("boot")[Gets A.1],
+      send("c-reads"),
+      sync("a-pushes"),
+      recv("c-pushes"),
+      sync("a-catches-up"),
+    ),
+    "C": (
+      recv("c-reads"),
+      event(id: "c1")[C.1],
+      send("c-pushes"),
+    ),
+    "A": (
+      "A.1",
+      sync("boot"),
+      event(id: "a2")[A.2],
+      sync("a-pushes"),
+      sync("a-catches-up", fill: wash)[Bug: A $!=$ C],
+    ),
   ),
   overlays: (
     // The future of `A.2`: every event it can reach.  A cone, but not one opening at a fixed angle
@@ -43,15 +60,13 @@
         point(ends, s - 0.4),
         point(ends, a + towards-c * (ends - apex)),
         close: true,
-        fill: red.transparentize(93%),
+        fill: wash,
         stroke: none,
       )
     },
     // Over the dot, under its label.
     marks: d => {
       let (mark, dot, mark-args, ..) = d
-      let wash = red.transparentize(93%)
-
       circle(mark("A", "a2"), radius: dot * 3, stroke: red + 0.7pt)
 
       // Make the inners of the events have the same `wash` color of the future cone

@@ -1,7 +1,7 @@
 #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, below, above, send, recv, replica
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
-#set text(size: 10pt)
+#set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))
 
 #lamport-diagram(
   replicas: (
@@ -11,7 +11,7 @@
   ),
   events: (
     "S": (
-      sync("boot")[Gets `A.1`],
+      sync("boot")[Gets A.1],
       send("c-reads"),
       sync("a-pushes"),
       recv("c-pushes"),
@@ -19,15 +19,15 @@
     ),
     "C": (
       recv("c-reads"),
-      [`C.1`],
+      "C.1",
       send("c-pushes"),
     ),
     "A": (
-      [`A.1`],
+      "A.1",
       sync("boot"),
-      [`A.2`],
+      "A.2",
       sync("a-pushes"),
-      sync("a-catches-up")[Bug: $A != C$],
+      sync("a-catches-up")[Bug: A $!=$ C],
     ),
   ),
 )

@@ -2,14 +2,31 @@
 #import draw: *
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
-#set text(size: 10pt)
+#set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))
+#let wash = red.transparentize(93%)
 
 #lamport-diagram(
   replicas: (replica("S", above, color: luma(0)), replica("A", below), replica("C", below)),
   events: (
-    "S": (sync("boot"), send("c-reads"), sync("a-pushes"), recv("c-pushes"), sync("a-catches-up")),
-    "C": (recv("c-reads"), event(id: "c1")[`C.1`], send("c-pushes")),
-    "A": ([`A.1`], sync("boot"), event(id: "a2")[`A.2`], sync("a-pushes"), sync("a-catches-up")),
+    "S": (
+      sync("boot")[Gets A.1],
+      send("c-reads"),
+      sync("a-pushes"),
+      recv("c-pushes"),
+      sync("a-catches-up"),
+    ),
+    "C": (
+      recv("c-reads"),
+      event(id: "c1")[C.1],
+      send("c-pushes"),
+    ),
+    "A": (
+      "A.1",
+      sync("boot"),
+      event(id: "a2")[A.2],
+      sync("a-pushes"),
+      sync("a-catches-up", halo: none)[Bug: A $!=$ C],
+    ),
   ),
   overlays: (
     // The future of `A.2`: every event it can reach.  A cone, but not one opening at a fixed angle
