@@ -127,7 +127,7 @@
 }
 
 /// CeTZ's drawing commands, re-exported so that an `overlays` body can reach them without the caller
-/// pinning a second dependency: `#import "@preview/lamportian-dramatis:0.1.0": draw` and then
+/// pinning a second dependency: `#import "@preview/lamportian-dramatis:0.2.0": draw` and then
 /// `#import draw: *`.  It is the same module the diagram draws itself with, hence the same version.
 #let draw = cetz.draw
 

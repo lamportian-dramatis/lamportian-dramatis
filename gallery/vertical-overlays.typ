@@ -1,4 +1,4 @@
-#import "@preview/lamportian-dramatis:0.1.0": lamport-diagram, sync, send, recv, replica, event, draw, vertical
+#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, event, draw, vertical
 #import draw: *
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
