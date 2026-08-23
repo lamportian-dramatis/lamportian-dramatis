@@ -1,13 +1,14 @@
-#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, below, above, send, recv, replica
+#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, left, right, send, recv, replica, vertical, upwards
 
-#set page(width: 13cm, height: auto, margin: 0.4cm)
+#set page(width: 8cm, height: auto, margin: 0.4cm)
 #set text(size: 10pt)
 
 #lamport-diagram(
+  orientation: upwards,
   replicas: (
-    replica("S", above, color: luma(0)),
-    replica("A", below),
-    replica("C", below),
+    replica("S", left, color: luma(0)),
+    replica("A", right),
+    replica("C", right),
   ),
   events: (
     "S": (
