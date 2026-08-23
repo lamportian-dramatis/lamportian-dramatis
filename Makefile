@@ -4,9 +4,25 @@ UNIVERSE ?= $(HOME)/src/github.com/typst/universe
 NAME := $(shell sed -n 's/^name = "\(.*\)"/\1/p' typst.toml)
 VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' typst.toml)
 
-# The files the package is made of.  Everything else in this repository -- the Makefile above all --
-# is development scaffolding and must not reach the Universe repository.
-DIST := typst.toml lib.typ README.md CHANGELOG.md LICENSE gallery
+# What a submission is made of, in the three groups typst/packages asks for.
+#
+# Required: without these the package does not work, or does not carry its own licence and its own
+# minimal offline documentation.  They go in the archive users download.
+DIST := typst.toml lib.typ README.md LICENSE
+
+# Documentation: whatever the README links to, so that those links resolve on Typst Universe.  These
+# are committed alongside the package and kept out of the downloaded archive by `exclude` in
+# typst.toml.  The list is read out of the README rather than written here, so a link added there is
+# published without anybody having to remember this line.
+# Braces, not parentheses: make balances `(` and `)` inside a `$(shell ..)`, and the `)` in the
+# expression below would close it early.
+README-LINKS := ${shell grep -oE ']\([^)]+\)' README.md \
+  | sed -e 's/^](//' -e 's/)$$//' | grep -vE '^[a-z][a-z0-9+.-]*:' | sort -u}
+LINKED := $(filter-out $(DIST),$(wildcard $(README-LINKS)))
+
+# Everything else -- the Makefile, the docs submodule, and every example the README does not link --
+# is development scaffolding and must not reach the Universe repository at all.  A reader has no way
+# to open a file that is neither in the archive nor linked from the page.
 
 SOURCES := $(wildcard gallery/*.typ)
 IMAGES := $(SOURCES:.typ=.png)
@@ -14,7 +30,7 @@ IMAGES := $(SOURCES:.typ=.png)
 DATA_HOME := $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
 LOCAL := $(DATA_HOME)/typst/packages/preview/$(NAME)/$(VERSION)
 
-.PHONY: all gallery check install uninstall publish docs clean
+.PHONY: all gallery check install uninstall manifest publish docs clean
 
 all: gallery
 
@@ -54,12 +70,22 @@ docs: gallery
 	@cat CHANGELOG.md >> docs/changelog.md
 	@git -C docs status --short
 
+## List what `publish` would stage, without touching anything.
+manifest:
+	@printf 'required:\n'; for f in $(DIST); do echo "  $$f"; done
+	@printf 'linked from the README:\n'; for f in $(LINKED); do echo "  $$f"; done
+
 ## Stage the package into a clone of github.com/typst/packages, ready to commit and open a PR.
 publish: check gallery
 	@test -d "$(UNIVERSE)/packages/preview" || \
 	  { echo "not a typst/packages clone: $(UNIVERSE)"; exit 1; }
 	@dest="$(UNIVERSE)/packages/preview/$(NAME)/$(VERSION)"; \
-	rm -rf "$$dest" && mkdir -p "$$dest" && cp -r $(DIST) "$$dest/" && echo "staged in $$dest"
+	rm -rf "$$dest"; \
+	for f in $(DIST) $(LINKED); do \
+	  mkdir -p "$$dest/$$(dirname "$$f")" && cp "$$f" "$$dest/$$f" || exit 1; \
+	done; \
+	echo "staged in $$dest:"; \
+	(cd "$$dest" && find . -type f | sed 's|^\./|  |' | sort)
 
 clean:
 	rm -f $(IMAGES)
