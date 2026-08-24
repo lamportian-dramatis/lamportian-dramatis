@@ -66,6 +66,7 @@ The reference lives at **[lamportian-dramatis.github.io](https://lamportian-dram
 - **[Guide](https://lamportian-dramatis.github.io/guide)** — how to read the marks, how the columns are solved, and how a diagram becomes a cross-referenced figure.
 - **[Reference](https://lamportian-dramatis.github.io/reference)** — every function and every argument: `lamport-diagram`, `orientation`, `replica`, `event`, `send`, `recv`, `sync`, `idle`, `gap`, the label sides and the palette.
 - **[Overlays](https://lamportian-dramatis.github.io/overlays)** — drawing your own CeTZ into a diagram, addressing its own points, at a layer of your choosing.
+- **[Gallery](https://lamportian-dramatis.github.io/gallery)** — every example that ships with the package, each a complete document, with its source.
 - **[Changelog](https://lamportian-dramatis.github.io/changelog)** — what each release changed.
 
 ## Dependencies

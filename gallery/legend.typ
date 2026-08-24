@@ -54,7 +54,7 @@
       note("elided.north", "south", gap-color, [elided time])
 
       let (mx, my) = arrow-mid("t1")
-      note((mx - 0.18, my), "east", send-color, [a message])
+      note((mx - 0.18, my), "east", send-color, [a one-way message])
 
       draw.rect(..lane-rect("D", pad: (0.05, 0.12)), stroke: outline(color-of("D")), name: "lane")
       note("lane.north", "south", color-of("D"), [a timeline; the arrow indicates the direction of local time])
