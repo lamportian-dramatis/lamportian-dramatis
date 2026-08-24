@@ -4,57 +4,22 @@ Lamport diagrams for replicated systems: one timeline per replica, local events 
 
 > **Pre-1.0.**  This is young and still changing a lot.  Nothing here is a stable API until 1.0.0, so expect breaking changes between 0.x releases — argument names, defaults and the shape of what the helpers return are all still open.  A Typst import names an exact version, so nothing breaks under you: upgrading is always a deliberate edit.
 
-![The future cone of one event, washed in behind the lanes, with a ring round the event itself](gallery/overlays.png)
+![A diagram with each of its parts named: a sync between two replicas, a local event, a send and the receive it feeds, an elided stretch of time, and a timeline of its own](gallery/legend.png)
 
-That is [`gallery/overlays.typ`](gallery/overlays.typ), a complete standalone document and one of the worked examples that ship with the package:
+That is [`gallery/legend.typ`](gallery/legend.typ), a complete standalone document and one of the worked examples that ship with the package.  The callouts round it are drawn with [overlays](https://lamportian-dramatis.github.io/overlays); the diagram under them is this much:
 
 ```typ
-#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, below, above, send, recv, replica, event, draw
-#import draw: *
+#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap, below
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
 #set text(size: 10pt)
 
 #lamport-diagram(
-  replicas: (replica("S", above, color: luma(0)), replica("A", below), replica("C", below)),
+  replicas: (replica("R1"), replica("R2", below), "D"),
   events: (
-    "S": (sync("boot"), send("c-reads"), sync("a-pushes"), recv("c-pushes"), sync("a-catches-up")),
-    "C": (recv("c-reads"), event(id: "c1")[`C.1`], send("c-pushes")),
-    "A": ([`A.1`], sync("boot"), event(id: "a2")[`A.2`], sync("a-pushes"), sync("a-catches-up")),
-  ),
-  overlays: (
-    backdrops: d => {
-      let (column, point, replicas, span, col-gap, ..) = d
-      let (_, ends) = span
-      let lane-of = id => replicas.position(r => r == id)
-      let (a, s, c) = (lane-of("A"), lane-of("S"), lane-of("C"))
-      let apex = column("A", "a2")
-      let crossing = column("C", -1) + 1 / col-gap
-      let towards-c = (c - a) / (crossing - apex)
-      line(
-        point(apex, a),
-        point(column("S", "a-pushes"), s - 0.4),
-        point(ends, s - 0.4),
-        point(ends, a + towards-c * (ends - apex)),
-        close: true,
-        fill: red.transparentize(93%),
-        stroke: none,
-      )
-    },
-    // Over the dot, under its label.
-    marks: d => {
-      let (mark, dot, mark-args, ..) = d
-      let wash = red.transparentize(93%)
-
-      circle(mark("A", "a2"), radius: dot * 3, stroke: red + 0.7pt)
-
-      // Make the inners of the events have the same `wash` color of the future cone
-      circle(..mark-args("S", 3), fill: wash)
-      circle(..mark-args("S", 4), fill: wash)
-      circle(..mark-args("S", 5), fill: wash)
-      circle(..mark-args("A", 4), fill: wash)
-      circle(..mark-args("A", 5), fill: wash)
-    },
+    "R1": (sync("t0", displacement: 0.5cm)[sync], "event", gap, send("t1")[send]),
+    "R2": (sync("t0", displacement: 0.5cm), recv("t1")[receive], "A"),
+    "D": (),
   ),
 )
 ```
