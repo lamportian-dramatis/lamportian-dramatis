@@ -1030,8 +1030,10 @@
 
     // What a drawing given for a layer is handed.  It answers in the diagram's own axes -- times
     // along the lanes, lanes across them -- wherever there is a choice, so that a drawing written
-    // against it survives a change of orientation; `mark` and `point` are the two that come back as
-    // page coordinates, those being what CeTZ draws with.
+    // against it survives a change of orientation; `mark`, `point`, `arrow-mid` and the rectangles
+    // come back as page coordinates instead, those being what CeTZ draws with.  Even those turn with
+    // the diagram, since what fixes a rectangle is the region it is asked for and the pad it is grown
+    // by, and both of those are said in the diagram's axes.
     let lane-of = value => if type(value) == str {
       let i = lanes.position(l => l.id == value)
       assert(
@@ -1116,6 +1118,128 @@
       }
     }
 
+    // How far a lane's backdrop reaches past each mark on it -- the halo the drawing lays down below.
+    // `lane-reach` is the widest of those reaches said as a half-thickness, and it is what a rectangle
+    // round a lane, or round an elided stretch of one, is drawn to: a box asked for there encloses
+    // the strip the diagram treats as the lane's own, marks and all.
+    let halo-reach = 0.07
+    let lane-reach = dot + halo-reach
+
+    // The two points an arrow runs between, as the `(lane, index)` pairs the rest of the drawing
+    // addresses points by: a message from its send to its receive, a two-way exchange from one of its
+    // ends to the other.  One name reaches both, a diagram being forbidden to spend a single name on a
+    // sync and on a message at once.
+    let ends-of = name => if name in msgs {
+      let m = msgs.at(name)
+      (m.send, m.recv)
+    } else if name in exchanges {
+      exchanges.at(name).ends
+    } else {
+      panic(
+        "lamport-diagram: overlays name the arrow '"
+          + name
+          + "', which is neither a message nor a sync of this diagram",
+      )
+    }
+
+    // The shaft of an arrow as it is drawn: the run between two marks, each end pulled back off its
+    // own mark by that mark's own clearance, so neither end is left orbiting a dot.  Clearance is
+    // per-endpoint on a message, the send mark being the smaller of the two; both ends of an exchange
+    // carry the same mark, hence one clearance for the two of them.
+    //
+    // The diagram draws from this and so does `arrow-mid`, which is the point of its being one
+    // function: an overlay hung off the middle of an arrow cannot drift from the arrow it hangs on.
+    let shaft-of = name => {
+      let ((ar, ai), (br, bi)) = ends-of(name)
+      let (leave, land) = if name in msgs {
+        (send-dot + 0.05, dot + 0.07)
+      } else {
+        (dot + 0.07, dot + 0.07)
+      }
+      let (ax, ay) = at(ar, ai)
+      let (bx, by) = at(br, bi)
+      let (dx, dy) = (bx - ax, by - ay)
+      let len = calc.sqrt(dx * dx + dy * dy)
+      (
+        (ax + dx / len * leave, ay + dy / len * leave),
+        (bx - dx / len * land, by - dy / len * land),
+      )
+    }
+
+    // A rectangle comes back as the two opposite corners CeTZ draws one from, ready to spread into
+    // `rect` -- and into anything else that takes two corners, so the same call outlines a region or
+    // washes it.  `pad` grows it on every side, in canvas centimetres: one number for all four sides,
+    // or a pair said the way the diagram is said -- how far along the timelines, how far across them
+    // -- which is what keeps a padded box the same box when the diagram is turned on its side.
+    let grown = (x0, y0, x1, y1, pad) => {
+      let complaint = (
+        "lamport-diagram: `pad` is a number of canvas centimetres, or two of them -- one along the "
+          + "timelines and one across them"
+      )
+      let (along, across) = if type(pad) == array {
+        assert(pad.len() == 2 and pad.all(v => type(v) in (int, float)), message: complaint)
+        pad
+      } else {
+        assert(type(pad) in (int, float), message: complaint)
+        (pad, pad)
+      }
+      // The pad is given in the diagram's axes and has to land on the page's, which are the same two
+      // turned about: whichever way time runs, `along` grows the box that way and `across` the other.
+      let gx = along * calc.abs(axes.time.at(0)) + across * calc.abs(axes.lane.at(0))
+      let gy = along * calc.abs(axes.time.at(1)) + across * calc.abs(axes.lane.at(1))
+      arguments(
+        (calc.min(x0, x1) - gx, calc.min(y0, y1) - gy),
+        (calc.max(x0, x1) + gx, calc.max(y0, y1) + gy),
+      )
+    }
+    // The same, for a region said in the diagram's own axes: a stretch of time in canvas centimetres,
+    // and a stretch of lanes.
+    let axes-rect = (t0, t1, r0, r1, pad) => {
+      let (x0, y0) = point(t0, r0)
+      let (x1, y1) = point(t1, r1)
+      grown(x0, y0, x1, y1, pad)
+    }
+    // The stretch of time one `gap` elides, as the two times its dots run between.  The timeline is
+    // interrupted over exactly this stretch and `gap-rect` is drawn round exactly this stretch, so
+    // neither can drift from the other.
+    let gap-span = (ri, ii) => {
+      let half = span-of(rows.at(ri).at(ii)) / 2
+      let t = t-at(ri, ii)
+      (t - half, t + half)
+    }
+    // The strip a lane occupies, across the lanes: the same half-thickness whichever region asks for
+    // it, so a rectangle round an elided stretch lines up with one round the whole lane.
+    let lane-strip = ri => (ri - lane-reach / row-gap, ri + lane-reach / row-gap)
+    // A replica's name, and the box it goes in: the box is measured off the name itself and hung off
+    // the anchor that puts a name just before the start of its own lane.  The drawing sets the name
+    // into this box and `names-rect` hands this box out, so the two cannot disagree about where a
+    // name is.
+    let name-content = ri => text(fill: lanes.at(ri).color, weight: "medium", lanes.at(ri).label)
+    let name-box = ri => {
+      let size = measure(name-content(ri))
+      let (w, h) = (size.width / 1cm, size.height / 1cm)
+      let (x, y) = point(name-t, ri)
+      if axes.name-anchor == "east" {
+        (x - w, y - h / 2, x, y + h / 2)
+      } else if axes.name-anchor == "west" {
+        (x, y - h / 2, x + w, y + h / 2)
+      } else if axes.name-anchor == "south" {
+        (x - w / 2, y, x + w / 2, y + h)
+      } else {
+        (x - w / 2, y - h, x + w / 2, y)
+      }
+    }
+    // The one box that holds every one of the boxes given.
+    let union-of = boxes => boxes.fold(
+      boxes.at(0),
+      ((ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1)) => (
+        calc.min(ax0, bx0),
+        calc.min(ay0, by0),
+        calc.max(ax1, bx1),
+        calc.max(ay1, by1),
+      ),
+    )
+
     let locator = (
       mark: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
@@ -1129,6 +1253,79 @@
       mark-args: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
         mark-args-of(ri, ii)
+      },
+      // The rectangles.  Each answers with the two corners `rect` takes, and each takes a `pad` that
+      // grows it -- see `grown` above for what a pad is measured in.
+      //
+      // A lane's own rectangle spans its whole timeline, from before the first mark to past the
+      // arrowhead, and is as thick across as the strip the lane erases behind itself.  It is the lane
+      // the diagram draws, so it holds every mark on it and no label off it, and it stops short of the
+      // replica name, which sits before the lane and has `names-rect` of its own.
+      lane-rect: (lane, pad: 0) => {
+        let ri = lane-of(lane)
+        let (r0, r1) = lane-strip(ri)
+        axes-rect(lane-start, lane-end, r0, r1, pad)
+      },
+      // An elided stretch: exactly the dotted span of one `gap`, as thick across as its lane.  A gap
+      // carries no id, so it is named by its index on the lane -- `gap-rect("R1", 3)`, or a negative
+      // one counting back from the end.
+      gap-rect: (replica, key, pad: 0) => {
+        let (ri, ii) = index-of(replica, key)
+        let it = rows.at(ri).at(ii)
+        assert(
+          it.kind == "gap",
+          message: "lamport-diagram: `gap-rect` names a point on replica '"
+            + lanes.at(ri).id
+            + "' whose kind is '"
+            + it.kind
+            + "' -- only a gap spans a stretch of its own to draw a rectangle round",
+        )
+        let (t0, t1) = gap-span(ri, ii)
+        let (r0, r1) = lane-strip(ri)
+        axes-rect(t0, t1, r0, r1, pad)
+      },
+      // The replica names: one name's own box, or -- asked for without a replica -- the one strip that
+      // holds every name, which is the column the diagram keeps clear before its lanes begin.
+      names-rect: (..args) => {
+        let positional = args.pos()
+        assert(
+          positional.len() <= 1,
+          message: "lamport-diagram: `names-rect` takes one replica, or none at all for the strip "
+            + "that holds every name",
+        )
+        for key in args.named().keys() {
+          assert(key == "pad", message: "lamport-diagram: `names-rect` has no `" + key + "` parameter")
+        }
+        let which = if positional.len() == 1 {
+          let ri = lane-of(positional.at(0))
+          assert(
+            type(ri) == int and ri >= 0 and ri < lanes.len(),
+            message: "lamport-diagram: a name belongs to a replica, so name one rather than a lane "
+              + "between two of them",
+          )
+          (ri,)
+        } else {
+          range(lanes.len())
+        }
+        let (x0, y0, x1, y1) = union-of(which.map(name-box))
+        grown(x0, y0, x1, y1, args.named().at("pad", default: 0))
+      },
+      // An arrow, by the name that pairs its two ends: a message name or a sync's.  The rectangle
+      // holds the shaft and both the marks it runs between, so a box drawn round an exchange reads as
+      // round the exchange rather than round the gap in the middle of it.
+      arrow-rect: (name, pad: 0) => {
+        let (x0, y0, x1, y1) = union-of(ends-of(name).map(((ri, ii)) => {
+          let (x, y) = at(ri, ii)
+          let radius = mark-radius(rows.at(ri).at(ii))
+          (x - radius, y - radius, x + radius, y + radius)
+        }))
+        grown(x0, y0, x1, y1, pad)
+      },
+      // The middle of that arrow's shaft, which is where the diagram sets an arrow's own label before
+      // stepping it off the shaft -- so a note hung here hangs where a label would have.
+      arrow-mid: name => {
+        let ((fx, fy), (tx, ty)) = shaft-of(name)
+        ((fx + tx) / 2, (fy + ty) / 2)
       },
       color-of: replica => {
         let ri = lane-of(replica)
@@ -1146,6 +1343,7 @@
       col-gap: col-gap,
       row-gap: row-gap,
       dot: dot,
+      draw: draw,
     )
     // A layer's drawing, ready to splice into the pass it belongs to.
     let layer-of = name => {
@@ -1168,18 +1366,10 @@
       // Arrows are laid down first, so every timeline, mark and label is drawn over them.  An arrow
       // that crosses a lane it has no endpoint on then reads as passing behind that lane's own marks,
       // instead of striking through them.
-      for (_, m) in msgs {
-        let (sr, si) = m.send
-        let (rr, rii) = m.recv
-        let (sx, sy) = at(sr, si)
-        let (rx, ry) = at(rr, rii)
-        let (dx, dy) = (rx - sx, ry - sy)
+      for (name, m) in msgs {
+        let (from, to) = shaft-of(name)
+        let (dx, dy) = (to.at(0) - from.at(0), to.at(1) - from.at(1))
         let len = calc.sqrt(dx * dx + dy * dy)
-        // Clearance is per-endpoint: the smaller send mark would otherwise be left orbited by a gap.
-        let leave = send-dot + 0.05
-        let land = dot + 0.07
-        let from = (sx + dx / len * leave, sy + dy / len * leave)
-        let to = (rx - dx / len * land, ry - dy / len * land)
         line(
           from,
           to,
@@ -1201,17 +1391,11 @@
       }
 
       // A two-way exchange is one shaft with a head at each end: both replicas give and take in the
-      // same round trip, so neither end of it is the sender.  Both ends carry the same mark, hence one
-      // clearance for the two of them.
-      for (_, x) in exchanges {
-        let ((ar, ai), (br, bi)) = x.ends
-        let (ax, ay) = at(ar, ai)
-        let (bx, by) = at(br, bi)
-        let (dx, dy) = (bx - ax, by - ay)
+      // same round trip, so neither end of it is the sender.
+      for (name, x) in exchanges {
+        let (from, to) = shaft-of(name)
+        let (dx, dy) = (to.at(0) - from.at(0), to.at(1) - from.at(1))
         let len = calc.sqrt(dx * dx + dy * dy)
-        let clear = dot + 0.07
-        let from = (ax + dx / len * clear, ay + dy / len * clear)
-        let to = (bx - dx / len * clear, by - dy / len * clear)
         line(
           from,
           to,
@@ -1240,11 +1424,10 @@
         let cursor = lane-start
         for (ii, it) in rows.at(ri).enumerate() {
           if it.kind == "gap" {
-            let gt = t-at(ri, ii)
-            let half = span-of(it) / 2
-            runs.push((cursor, gt - half, false))
-            runs.push((gt - half, gt + half, true))
-            cursor = gt + half
+            let (from, to) = gap-span(ri, ii)
+            runs.push((cursor, from, false))
+            runs.push((from, to, true))
+            cursor = to
           }
         }
         runs.push((cursor, lane-end, false))
@@ -1263,7 +1446,6 @@
       // right: a mark should read as more solidly in front than the line it sits on.
       let halo-paint = white.transparentize(12%)
       let halo = (paint: halo-paint, thickness: 5pt, cap: "round")
-      let halo-reach = 0.07
 
       // Layer 1: every lane's backdrop, over the arrows and under everything else.  It is laid for
       // all lanes before any lane's line, so no lane's backdrop can eat a neighbour's timeline.  It
@@ -1303,11 +1485,10 @@
           )
         }
 
-        content(
-          point(name-t, ri),
-          anchor: axes.name-anchor,
-          text(fill: lane.color, weight: "medium", lane.label),
-        )
+        // Set into the box `names-rect` hands out, rather than beside the box: one function says
+        // where a name is, and the drawing is one of the two readers of it.
+        let (x0, y0, x1, y1) = name-box(ri)
+        content(((x0 + x1) / 2, (y0 + y1) / 2), anchor: "center", name-content(ri))
       }
       layer-of(timelines)
 

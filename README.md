@@ -63,7 +63,7 @@ That is [`gallery/overlays.typ`](gallery/overlays.typ), a complete standalone do
 
 The reference lives at **[lamportian-dramatis.github.io](https://lamportian-dramatis.github.io/)**, and is the place to look up any of it:
 
-- **[Guide](https://lamportian-dramatis.github.io/guide)** — how the columns are solved, how to read the marks, and how a diagram becomes a cross-referenced figure.
+- **[Guide](https://lamportian-dramatis.github.io/guide)** — how to read the marks, how the columns are solved, and how a diagram becomes a cross-referenced figure.
 - **[Reference](https://lamportian-dramatis.github.io/reference)** — every function and every argument: `lamport-diagram`, `orientation`, `replica`, `event`, `send`, `recv`, `sync`, `idle`, `gap`, the label sides and the palette.
 - **[Overlays](https://lamportian-dramatis.github.io/overlays)** — drawing your own CeTZ into a diagram, addressing its own points, at a layer of your choosing.
 - **[Changelog](https://lamportian-dramatis.github.io/changelog)** — what each release changed.
