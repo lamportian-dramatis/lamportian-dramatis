@@ -5,7 +5,11 @@
 #set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))
 #let wash = red.transparentize(93%)
 
-#lamport-diagram(
+// Every argument but the orientation, so that `vertical-overlays.typ` can draw this very diagram --
+// this very drawing included -- the other way about by importing this and overriding that one
+// argument.  The drawing survives the turn because it is written in the diagram's own axes: columns
+// along the lanes and lanes across them, and never a length on the page.
+#let diagram = arguments(
   replicas: (replica("S", above, color: luma(0)), replica("A", below), replica("C", below)),
   events: (
     "S": (
@@ -59,14 +63,13 @@
         point(ends, s - 0.4),
         point(ends, a + towards-c * (ends - apex)),
         close: true,
-        fill: red.transparentize(93%),
+        fill: wash,
         stroke: none,
       )
     },
     // Over the dot, under its label.
     marks: d => {
       let (mark, dot, mark-args, ..) = d
-      let wash = red.transparentize(93%)
 
       circle(mark("A", "a2"), radius: dot * 3, stroke: red + 0.7pt)
 
@@ -79,3 +82,5 @@
     },
   ),
 )
+
+#lamport-diagram(..diagram)

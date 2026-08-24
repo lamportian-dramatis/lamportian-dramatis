@@ -6,7 +6,7 @@ Lamport diagrams for replicated systems: one timeline per replica, local events 
 
 ![A diagram with each of its parts named: a sync between two replicas, a local event, a send and the receive it feeds, an elided stretch of time, and a timeline of its own](gallery/legend.png)
 
-That is [`gallery/legend.typ`](gallery/legend.typ), a complete standalone document and one of the worked examples that ship with the package.  The callouts are drawn with [overlays](https://lamportian-dramatis.github.io/overlays); the diagram under them is this much:
+That is [`gallery/legend.typ`](gallery/legend.typ), a complete standalone document and one of the worked examples that ship with the package.  The callouts are drawn with [overlays](https://lamportian-dramatis.github.io/overlays); the diagram under them is just:
 
 ```typ
 #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap, below
