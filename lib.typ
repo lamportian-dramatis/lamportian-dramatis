@@ -393,8 +393,10 @@
 /// its own.
 ///
 /// Exactly two `sync` points must carry the same name, and they must sit on two different replicas.
-/// The pair is drawn as one arrow with a head at each end, and the two ends share a column: neither
-/// side can finish the exchange before the other one starts it.  Holding the same events is not the
+/// The pair is drawn as one arrow with a head at each end, and each end as a hollow mark with a dot of
+/// ink inside it, narrower than the timeline it sits on: neither side of an exchange is the sender, so neither is drawn smaller the way a `send`
+/// is, and the inner dot is what tells a sync's end from a `recv`.  The two ends share a column:
+/// neither side can finish the exchange before the other one starts it.  Holding the same events is not the
 /// same as holding the same state, so each end takes its own label.
 ///
 /// An optional label for the point goes positionally -- `sync("push")[rolled back]` -- or as `body`,
@@ -896,6 +898,13 @@
     .fold(1, calc.max)
 
   let send-dot = dot * 0.7
+  // The thickness every timeline is drawn with, and the dot inside the ring at either end of a
+  // two-way exchange, said as a fraction of it: a send is drawn smaller and a receive is drawn
+  // hollow, and the two ends of a sync are neither of those, so this is what tells one from a receive
+  // -- without the reader having to follow the arrow out to count its heads.  Kept narrower than the
+  // line it sits on, it reads as a dot of ink in the ring rather than as a mark of its own.
+  let lane-thickness = 1.1pt
+  let sync-pip = 0.8 * lane-thickness / 2 / 1cm
   // The two axes of the drawing, both in canvas centimetres: `t` runs along the timelines and `r`
   // across them.  Everything below is written in those terms and only `point` knows which way round
   // they are on the page, so the four orientations share one body of drawing code.
@@ -1101,6 +1110,7 @@
     // Everything it takes to draw one mark, as arguments ready to spread into `circle`.  Hollow says
     // the replica touches the network here and solid says a purely local step, and a send is drawn
     // smaller than the receive it feeds so the two ends of a message stay tellable apart on their own.
+    // A sync's ring carries a dot inside it as well, which is a second circle and so `pip-args-of`.
     //
     // The diagram draws its marks from this and so does `mark-args`, which is the point of its being
     // one function: an overlay restating a mark cannot fall out of step with the mark it restates.
@@ -1240,6 +1250,21 @@
       ),
     )
 
+    // The dot inside a sync's ring, as arguments ready to spread into `circle`, and `none` for every
+    // other kind of point, a sync being the only one that carries one.  It is drawn over the mark, so
+    // it reads as sitting inside the ring rather than as a mark of its own.
+    //
+    // The diagram draws it from this and so does `pip-args`, for the same reason `mark-args` is one
+    // function: what an overlay restates cannot fall out of step with what was drawn.
+    let pip-args-of = (ri, ii) => {
+      let it = rows.at(ri).at(ii)
+      if it.kind == "sync" {
+        arguments(at(ri, ii), radius: sync-pip, fill: lanes.at(ri).color, stroke: none)
+      } else {
+        none
+      }
+    }
+
     let locator = (
       mark: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
@@ -1249,10 +1274,22 @@
         let (ri, ii) = index-of(replica, key)
         cols.at(ri).at(ii)
       },
+      // Where the drawing put that point along the lanes, in columns: its column plus whatever
+      // `displacement` leant it off that column.  `column` is the moment the solver settled on and
+      // this is the moment the mark was drawn at, and the two are the same number until a
+      // displacement separates them -- which is what a `recv` does by default.
+      time: (replica, key) => {
+        let (ri, ii) = index-of(replica, key)
+        t-at(ri, ii) / col-gap
+      },
       point: (time, lane) => point(t-of(time), lane-of(lane)),
       mark-args: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
         mark-args-of(ri, ii)
+      },
+      pip-args: (replica, key) => {
+        let (ri, ii) = index-of(replica, key)
+        pip-args-of(ri, ii)
       },
       // The rectangles.  Each answers with the two corners `rect` takes, and each takes a `pad` that
       // grows it -- see `grown` above for what a pad is measured in.
@@ -1467,8 +1504,8 @@
       // The timelines and the replica names.  Every lane's line is laid before any mark, so a lower
       // lane can no longer paint over an upper lane's label where the two overlap.
       for (ri, lane) in lanes.enumerate() {
-        let solid = lane.color + 1.1pt
-        let elided = (paint: lane.color, thickness: 1.1pt, dash: "dotted")
+        let solid = lane.color + lane-thickness
+        let elided = (paint: lane.color, thickness: lane-thickness, dash: "dotted")
 
         // The timeline is drawn as solid runs interrupted by the dotted span of each `gap` column,
         // rather than as one line with markers on top, so an elided stretch reads as elided.  The
@@ -1492,12 +1529,18 @@
       }
       layer-of(timelines)
 
-      // The marks, each drawn from the spec `mark-args` hands to an overlay.
+      // The marks, each drawn from the spec `mark-args` hands to an overlay -- and, where a point
+      // carries one, the dot inside it, over the mark's own fill and from the spec `pip-args` hands
+      // out.
       for (ri, _) in lanes.enumerate() {
         for (ii, _) in rows.at(ri).enumerate() {
           let spec = mark-args-of(ri, ii)
           if spec != none {
             circle(..spec)
+          }
+          let pip = pip-args-of(ri, ii)
+          if pip != none {
+            circle(..pip)
           }
         }
       }
