@@ -71,7 +71,7 @@ check: install
 ## leading underscores it would otherwise take for its own.  Commit and push inside site/, then commit
 ## the moved submodule pointer here, so a revision of this repository names the pages that went with
 ## it.
-docs: gallery docs/changelog.rst
+docs: gallery
 	@test -d site || { echo "site/ is empty -- run: git submodule update --init"; exit 1; }
 	@mkdir -p docs/gallery && cp $(IMAGES) docs/gallery/
 	$(SPHINX) -b html -d .doctrees docs site
@@ -81,7 +81,7 @@ docs: gallery docs/changelog.rst
 ## Watch the sources and serve the result at http://localhost:4983, rebuilding on every save.  It
 ## builds into .preview/ rather than into site/, so an afternoon's editing does not leave the
 ## submodule holding a hundred half-finished builds.
-preview: gallery docs/changelog.rst
+preview: gallery
 	@mkdir -p docs/gallery && cp $(IMAGES) docs/gallery/
 	$(SPHINX_SERVE) --port 4983 docs .preview
 
@@ -98,14 +98,6 @@ docs/_static/favicon.ico: docs/_static/favicon.svg
 	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
 	for s in 16 32 48; do rsvg-convert -w $$s -h $$s $< -o "$$tmp/$$s.png" || exit 1; done && \
 	magick "$$tmp/16.png" "$$tmp/32.png" "$$tmp/48.png" $@ && echo "$@"
-
-## The changelog is written once, in Markdown at the root, and converted for the site.  Sentences are
-## spaced two apart in this project and a converter collapses runs of whitespace, so the second space
-## of each pair is carried across on a marker and put back afterwards.
-docs/changelog.rst: CHANGELOG.md
-	@command -v pandoc >/dev/null || { echo "pandoc is needed to convert CHANGELOG.md"; exit 1; }
-	@sed 's/  / @@/g' CHANGELOG.md | pandoc -f gfm -t rst --wrap=none \
-	  | sed -e 's/ @@/  /g' -e 's/@@/ /g' > $@
 
 ## List what `publish` would stage, without touching anything.
 manifest:
@@ -125,5 +117,5 @@ publish: check gallery
 	(cd "$$dest" && find . -type f | sed 's|^\./|  |' | sort)
 
 clean:
-	rm -f $(IMAGES) docs/changelog.rst
+	rm -f $(IMAGES)
 	rm -rf .preview docs/gallery

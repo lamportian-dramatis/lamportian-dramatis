@@ -55,8 +55,6 @@ The documentation is written in reStructuredText under [`docs/`](https://github.
 
 `site/` is the [`lamportian-dramatis.github.io`](https://github.com/lamportian-dramatis/lamportian-dramatis.github.io) repository, carried here as a submodule, and holds nothing but that build — GitHub Pages serves it verbatim, which is what the `.nojekyll` file in it is for.  Clone with `--recurse-submodules`, or run `git submodule update --init` in an existing clone.  Commit and push inside `site/` first, then commit the moved submodule pointer here, so that a revision of this repository names the pages that went with it.
 
-Converting the changelog for the site needs [pandoc](https://pandoc.org/); nothing else does.
-
 The gallery examples import the package by its published spec rather than by a relative path, which is what the Universe linter asks for.  So `check`, `gallery` and `publish` all first run `install`, which copies the working tree over `@preview/lamportian-dramatis:0.2.0` in your [local package directory](https://github.com/typst/packages?tab=readme-ov-file#local-packages).  That copy shadows whatever Typst Universe would otherwise serve, so run `make uninstall` when you are done working on the package.
 
 ## License
