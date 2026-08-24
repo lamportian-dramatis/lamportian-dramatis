@@ -3,13 +3,13 @@
 
 This page describes the ``overlays`` argument of `lamport-diagram`:func:\ : an escape hatch for
 drawing arbitrary `CeTZ <https://typst.app/universe/package/cetz/>`__ into a diagram, in the
-diagram's own coordinates, addressing the diagram's own points — and at a chosen depth, so a drawing
+diagram's own coordinates, addressing the diagram's own points -- and at a chosen depth, so a drawing
 can sit behind what the diagram draws as readily as in front of it.
 
 Terminology, values and types
 -----------------------------
 
-The entries of the *locator* — the dictionary a drawing is handed, described under `Shape`_ — take
+The entries of the *locator* -- the dictionary a drawing is handed, described under `Shape`_ -- take
 and answer in a handful of kinds of value, and the kinds are worth keeping apart:
 
 .. image:: gallery/locators.png
@@ -24,9 +24,9 @@ and answer in a handful of kinds of value, and the kinds are worth keeping apart
 
      A position along logical time.  It is a real number placed along the axis the timelines run on.
      ``0`` is the first `column`:term:\ : the solver starts every point there and only ever pushes
-     one later, so nothing is solved before ``0`` — though a lane whose opening point waits on a
+     one later, so nothing is solved before ``0`` -- though a lane whose opening point waits on a
      message does start further along than that.  Times are what let a drawing be placed at, before
-     or after any moment the diagram holds — ``-0.5`` falls before the first column, and ``1.5``
+     or after any moment the diagram holds -- ``-0.5`` falls before the first column, and ``1.5``
      midway between the second column and the third (if any).
 
    column
@@ -35,7 +35,7 @@ and answer in a handful of kinds of value, and the kinds are worth keeping apart
      `time`:term:; most times are not columns.  This is the discrete thing the layout reasons about,
      and the only kind that can answer "did these two land at the same moment".  Columns count from
      ``0``, so a lane's opening point sits in column ``0`` unless a message it receives pushes it
-     later.  That is not the numbering an index uses — see `Addressing a point`_ — and ``column("A",
+     later.  That is not the numbering an index uses -- see `Addressing a point`_ -- and ``column("A",
      1)`` says "the first item written on A", by an index counting from ``1``, and answers ``0``,
      the column the solver put it in.  An index says where in the lane's array a point stands; a
      column says when it happens.
@@ -49,12 +49,12 @@ and answer in a handful of kinds of value, and the kinds are worth keeping apart
 
    coordinate
 
-     A CeTZ point, ``(x, y)`` in canvas centimetres.  It is what every CeTZ function wants, and the
+     A CeTZ point, ``(x, y)`` in canvas centimeters.  It is what every CeTZ function wants, and the
      only kind here that knows which way the diagram runs.
 
    rectangle
 
-     A pair of `coordinate`:term:\ s — two opposite corners — handed back as ``arguments``, so it
+     A pair of `coordinate`:term:\ s -- two opposite corners -- handed back as ``arguments``, so it
      spreads straight into ``rect``.  It is measured off what the diagram actually drew, and it
      takes a ``pad`` that grows it.
 
@@ -67,7 +67,7 @@ grown by, and neither of those is a position on the page.
 Shape
 -----
 
-``overlays`` takes ``none``, a bare CeTZ body, a function of one argument — the *locator* —
+``overlays`` takes ``none``, a bare CeTZ body, a function of one argument -- the *locator* --
 returning a CeTZ body, or a dictionary from layer name to either of those.  A body or a function on
 its own goes in the ``foreground``, that being what you want when you have not thought about depth.
 
@@ -91,8 +91,8 @@ its own goes in the ``foreground``, that being what you want when you have not t
      marks: d => { ... },
    )
 
-Everything is spliced into the diagram's own ``cetz.canvas``, so a coordinate is a canvas centimetre
-and every CeTZ coordinate form — ``rel:``, ``to:``, anchors on elements you name yourself — works as
+Everything is spliced into the diagram's own ``cetz.canvas``, so a coordinate is a canvas centimeter
+and every CeTZ coordinate form -- ``rel:``, ``to:``, anchors on elements you name yourself -- works as
 it does anywhere else.  It all runs inside the same ``context`` the diagram uses, so ``measure`` is
 available.
 
@@ -113,7 +113,7 @@ keeps the two versions in step:
 
 ``#import draw: *`` at the top of the file works as well, if you would rather have them everywhere.
 The locator carries that same module under ``draw``, so a body can take it from there and import
-nothing at all — ``let (draw, mark, ..) = d``, and then ``draw.circle(..)``.
+nothing at all -- ``let (draw, mark, ..) = d``, and then ``draw.circle(..)``.
 
 The locator is a dictionary; unpack the entries a layer needs and call them.
 
@@ -124,7 +124,7 @@ A diagram is drawn in a fixed sequence of passes: the arrows first, then the bac
 them wherever a lane crosses, then the timelines, then the marks, then the labels.  Each pass is a
 **layer**, and each key of ``overlays`` names one.
 
-An overlay given for a layer is **appended to that layer's pass** — after everything the diagram
+An overlay given for a layer is **appended to that layer's pass** -- after everything the diagram
 itself draws there, and before anything in any later pass.  So ``arrows: ...`` draws with the
 contents of the layer "arrows": over them, under everything that follows.  That is the whole rule.
 
@@ -168,7 +168,7 @@ first still draws it last.  A key that is not a layer fails compilation, and say
 
 ``labels`` and ``foreground`` land next to each other, the diagram drawing nothing between them, and
 they are still two layers rather than one: give both and ``labels`` draws first.  What separates
-them is not what lies between but what they mean — ``labels`` joins the diagram's own last pass,
+them is not what lies between but what they mean -- ``labels`` joins the diagram's own last pass,
 ``foreground`` sits above everything, that pass included.
 
 The layers are part of the API
@@ -190,14 +190,14 @@ out of something that is not a literal.
 
 Exposing them settles what would otherwise be a matter of taste: which layers to offer.  The answer
 is all of them, because the array claims to be how the diagram is drawn.  \ ``timelines`` earns its
-place not by being useful — a dashed line along a lane is the only use I can name for it — but by
+place not by being useful -- a dashed line along a lane is the only use I can name for it -- but by
 being a pass; leaving it out would make ``layers`` a curated list of good ideas rather than a
 description, and the reader could no longer trust the order.
 
 ``arrows`` and ``backdrops`` are not the same place
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-They sound like one place — "just above the arrows", "just under the lanes" — and the difference
+They sound like one place -- "just above the arrows", "just under the lanes" -- and the difference
 between them is most of why the layers are worth having.
 
 What makes an arrow pass *behind* a lane is a translucent white band.  Before any lane is drawn, the
@@ -210,11 +210,11 @@ So nothing is washed by *the lanes*.  Things are washed by that band, and whethe
 depends only on which side of it you drew:
 
 - At ``background`` or ``arrows`` you draw first and the band goes down over you.  A fill comes out
-  with a paler five-point stripe along every lane — the same fading the arrows get, and it keeps its
+  with a paler five-point stripe along every lane -- the same fading the arrows get, and it keeps its
   hue, since the band is translucent rather than a lid.
 
 - At ``backdrops`` the band is already down and you draw over it.  A fill covers page and band
-  alike, so it comes out even — and still sits under the timelines, the marks and the labels, all of
+  alike, so it comes out even -- and still sits under the timelines, the marks and the labels, all of
   which come later.
 
 Which you want depends on what the drawing means.  A note belonging to one arrow reads better at
@@ -245,8 +245,8 @@ has none, so it takes one:
 
    "A": ([`A.1`], event(id: "bad")[`A.2`], sync("a-pushes")),
 
-Ids are opt-in on purpose.  The alternative — addressing an event by where it sits, ``A.0``,
-``A.1``, … — would put back exactly the fragility that solving the columns removed: insert one event
+Ids are opt-in on purpose.  The alternative -- addressing an event by where it sits, ``A.0``,
+``A.1``, … -- would put back exactly the fragility that solving the columns removed: insert one event
 and every drawing below it points silently at the wrong dot.  An id you wrote survives the insert.
 
 Two points on one lane may not share an id, and that is an error rather than a silent win for
@@ -257,7 +257,7 @@ By index
 
 Anywhere an id is taken an integer is taken too, addressing the lane positionally, **1-based**,
 counting *every* item in the lane's array including ``gap`` and ``idle``.  It numbers the array and
-nothing else — the columns the solver hands out count from ``0``, so the first item on a lane is
+nothing else -- the columns the solver hands out count from ``0``, so the first item on a lane is
 index ``1`` and column ``0``:
 
 .. code:: typst
@@ -268,7 +268,7 @@ index ``1`` and column ``0``:
    column("B", 2)    // and the same wherever else a point is asked for
 
 Ids are strings and indices are integers, so the two never need telling apart by hand.  An index is
-what to reach for when naming a one-off is not worth it — bearing in mind that it moves when you
+what to reach for when naming a one-off is not worth it -- bearing in mind that it moves when you
 insert an event above it, which is exactly what an id does not do.
 
 What the locator holds
@@ -276,7 +276,7 @@ What the locator holds
 
 .. typst:locator:: mark(replica, id-or-index)
 
-   Return the CeTZ coordinate of the mark the diagram drew for that point — a local ``event``, or
+   Return the CeTZ coordinate of the mark the diagram drew for that point -- a local ``event``, or
    either end of a ``send``, ``recv`` or ``sync``.  It includes the sub-column ``displacement`` that
    leans an arrow off a straight run across the lanes, so it is where the dot really landed rather than
    where its column nominally is.
@@ -287,7 +287,7 @@ What the locator holds
 
 .. typst:locator:: mark-args(replica, id-or-index)
 
-   Return everything the diagram used to draw that mark — its coordinate, radius, fill and stroke — as
+   Return everything the diagram used to draw that mark -- its coordinate, radius, fill and stroke -- as
    ``arguments`` ready to spread into ``circle``.  A ``gap`` or an ``idle`` draws no mark, so for those
    it returns ``none``.
 
@@ -313,11 +313,11 @@ What the locator holds
    ``mark-args`` follows the library if any of it ever changes.
 
    A ``sync``'s ring carries a dot inside it, and that dot is a second circle rather than part of the
-   first — ``pip-args`` is where it comes from.
+   first -- ``pip-args`` is where it comes from.
 
 .. typst:locator:: pip-args(replica, id-or-index)
 
-   Return the dot inside that point's ring, as ``arguments`` ready to spread into ``circle`` — or
+   Return the dot inside that point's ring, as ``arguments`` ready to spread into ``circle`` -- or
    ``none`` for a point that carries none, which is every kind but a ``sync``.  It is drawn over the
    mark's own fill, so a drawing that restates both puts this one second.
 
@@ -338,7 +338,7 @@ What the locator holds
 .. typst:locator:: column(replica, id-or-index)
 
    Return the column the solver put that point in: a whole number, ``0`` up to ``ncols - 1``.  It
-   carries no lane and no displacement — it is the moment, and nothing about where on the page that
+   carries no lane and no displacement -- it is the moment, and nothing about where on the page that
    moment was drawn.
 
    ``mark`` and ``column`` ask the same question and answer in different kinds, and that is the whole
@@ -361,7 +361,7 @@ What the locator holds
       )
 
    ``mark("C", "c-reads")`` cannot start that rectangle: it sits on C's lane, not on the first one.  So
-   the two compose — ``column`` gets the moment, ``point`` puts it on whichever lane you meant.
+   the two compose -- ``column`` gets the moment, ``point`` puts it on whichever lane you meant.
 
    ``column`` is also what to reach for when you want to *reason* rather than draw.  \ ``column("A",
    "x") == column("B", "y")`` is "the solver found nothing ordering these two", which is a real
@@ -369,29 +369,28 @@ What the locator holds
 
 .. typst:locator:: time(replica, id-or-index)
 
-   Return the time that point's mark was drawn at, in columns: its column, plus whatever
-   ``displacement`` leant it off that column.  Where ``column`` is the moment the solver settled on,
-   this is the moment the drawing used, and the two are the same number until a displacement separates
-   them — which is what a ``recv`` does by default, landing half a column past its own column at the
-   default ``col-gap``.
+   Return the `time`:term: that point's mark was drawn at -- i.e. the `column`:term: it was solved
+   into, plus whatever ``displacement`` off that column.
 
    It is a time, so it composes with a lane: ``point(time("C", "c-reads"), "C")`` is exactly
-   ``mark("C", "c-reads")`` — the same place, said in the diagram's own axes rather than on the page.
-   That is what makes it the one to reach for when a drawing has to line something up with a mark
-   *across* the lanes, which a coordinate cannot do.
+   ``mark("C", "c-reads")`` -- the same place, said in the diagram's own axes rather than on the
+   page.  That is what makes it the one to reach for when a drawing has to line something up with a
+   mark *across* the lanes, which a coordinate cannot do.
 
 .. typst:locator:: point(time, lane)
 
-   Return the coordinate of a time on a lane.  Both arguments are the kinds above: ``time`` is a number
-   of columns, whole or not, and ``lane`` is a number of lanes, or the id of the replica on one.
+   Return the `coordinate`:term: of a `time`:term: on a `lane`:term:.  Both arguments are those
+   kinds: a time is a position along the axis the timelines run on, whole where it falls on a column
+   and fractional between two, and a lane is a position across the replicas, or the id of the replica
+   on one.
 
    It is the entry that turns a time and a lane into a position on the page, which is what makes it the
-   one to write a drawing in terms of — see `Staying orientation-independent`_ below.
+   one to write a drawing in terms of -- see `Staying orientation-independent`_ below.
 
 The rectangles
 ~~~~~~~~~~~~~~
 
-The five that follow answer with two opposite corners, so each spreads straight into ``rect`` — or
+The five that follow answer with two opposite corners, so each spreads straight into ``rect`` -- or
 into anything else that takes two, ``content`` included.  Naming that ``rect`` leaves CeTZ holding
 the anchors, which is what lets a note be hung off the box instead of off a position worked out by
 hand:
@@ -407,8 +406,8 @@ hand:
      },
    )
 
-``pad`` grows a rectangle on every side, in canvas centimetres.  One number pads all four the same;
-a pair pads in the diagram's own axes — how far along the timelines, how far across them — which is
+``pad`` grows a rectangle on every side, in canvas centimeters.  One number pads all four the same;
+a pair pads in the diagram's own axes -- how far along the timelines, how far across them -- which is
 what keeps a padded box the same box when the diagram is turned on its side:
 
 .. code:: typst
@@ -432,13 +431,13 @@ the middle of.  None of it is re-derived, so none of it can drift.
 .. typst:locator:: gap-rect(replica, index, pad: 0)
 
    Return the rectangle round exactly the dotted span of one ``gap``, as thick across as its lane.  A
-   ``gap`` carries no id, so name it by its index on the lane — a negative one counting back from the
+   ``gap`` carries no id, so name it by its index on the lane -- a negative one counting back from the
    end.  Naming a point that is not a ``gap`` fails compilation, saying which kind it found there.
 
 .. typst:locator:: names-rect(pad: 0)
 
    Return the rectangle round the strip the replica names are set in: the column the diagram keeps
-   clear before the lanes begin.  Given a replica — ``names-rect("A")`` — it is that one name's own box
+   clear before the lanes begin.  Given a replica -- ``names-rect("A")`` -- it is that one name's own box
    instead.
 
 .. typst:locator:: arrow-rect(name, pad: 0)
@@ -449,14 +448,14 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: arrow-mid(name)
 
-   Return the coordinate of the middle of that arrow's shaft — where the diagram sets an arrow's own
+   Return the coordinate of the middle of that arrow's shaft -- where the diagram sets an arrow's own
    label, before stepping it off the shaft.  A note hung here hangs where a label would have.
 
 .. typst:locator:: color-of(replica)
 
-   Return the colour that replica's timeline and marks are drawn in, so a drawing can match a lane
-   rather than restate its colour.  A lane between two replicas has none, so this takes a replica and
-   not a lane.  Next to ``mark-args`` it is the smaller tool: for when you want a lane's colour and
+   Return the color that replica's timeline and marks are drawn in, so a drawing can match a lane
+   rather than restate its color.  A lane between two replicas has none, so this takes a replica and
+   not a lane.  Next to ``mark-args`` it is the smaller tool: for when you want a lane's color and
    nothing else.
 
 .. typst:locator:: span
@@ -484,14 +483,14 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: draw
 
-   The CeTZ module the diagram draws with — the same one the package re-exports, for a body that would
+   The CeTZ module the diagram draws with -- the same one the package re-exports, for a body that would
    rather unpack it than import it: ``let (draw, mark, ..) = d``, and then ``draw.circle(..)``.
 
 .. typst:locator:: col-gap
 .. typst:locator:: row-gap
 .. typst:locator:: dot
 
-   The diagram's own measurements, in canvas centimetres: one column of time, one lane, and the radius
+   The diagram's own measurements, in canvas centimeters: one column of time, one lane, and the radius
    of an event's dot.
 
    They are here so a drawing can speak the diagram's own language.  A brace half a column clear of the
@@ -500,8 +499,8 @@ the middle of.  None of it is re-derived, so none of it can drift.
 Staying orientation-independent
 -------------------------------
 
-``point(time, lane)`` is stated in the diagram's own axes — logical time along the lanes, and lanes
-across it — so a drawing written in terms of it survives a flip from ``horizontal`` to ``vertical``.
+``point(time, lane)`` is stated in the diagram's own axes -- logical time along the lanes, and lanes
+across it -- so a drawing written in terms of it survives a flip from ``horizontal`` to ``vertical``.
 One written against raw ``(x, y)`` arithmetic does not:
 
 .. code:: typst
@@ -510,7 +509,7 @@ One written against raw ``(x, y)`` arithmetic does not:
    line(point(2, "A"), point(2, "C"))   // flips cleanly
    line((4, 0), (4, -3))                // does not
 
-Fractional lanes are what make this work for nudges too.  "Just off the lane, towards the next one"
+Fractional lanes are what make this work for nudges too.  "Just off the lane, toward the next one"
 is ``point(c, 0.15)`` whichever way the diagram runs, where a page-space ``(0, -0.3)`` would point
 the wrong way the moment it turned.
 
@@ -529,8 +528,8 @@ lane without knowing where on the page that lane falls:
 
 That line lies along the lane, so the layer decides whether it shows at all: at ``backdrops`` the
 lane's own stroke would cover it, at ``timelines`` it is drawn over that stroke instead.  To sit
-*beside* the lane rather than on it, feed the same span to a fractional lane — ``point(s, 1.12)`` to
-``point(e, 1.12)`` — which is the pairing coordinates would not have allowed.
+*beside* the lane rather than on it, feed the same span to a fractional lane -- ``point(s, 1.12)`` to
+``point(e, 1.12)`` -- which is the pairing coordinates would not have allowed.
 
 Errors
 ------

@@ -2,7 +2,7 @@ Reference
 =========
 
 These pages describe the package as it stands on `main <https://github.com/mvaled/lamportian-dramatis>`__.  A Typst import names an exact version, so what
-a document sees is whatever it asked for — the `changelog <changelog>`:doc: is what says which
+a document sees is whatever it asked for -- the `changelog <changelog>`:doc: is what says which
 release each of these landed in, and what is still waiting.
 
 .. typst:function:: lamport-diagram(caption: none, replicas: (), events: (:), orientation: horizontal, overlays: none, col-gap: none, row-gap: none, text-size: 0.62em, dot: 0.095, message-stroke: 0.9pt + luma(110))
@@ -12,8 +12,8 @@ release each of these landed in, and what is still waiting.
                    the reference resolves to the figure, numbering alongside the document's others.
 
    :param replicas: the lane order: top to bottom on a horizontal diagram, left to right on a
-                    vertical one.  Each entry is an id string, a `replica`:func: — which also
-                    carries that lane's event defaults — or a bare dictionary of the same fields.
+                    vertical one.  Each entry is an id string, a `replica`:func: -- which also
+                    carries that lane's event defaults -- or a bare dictionary of the same fields.
 
    :param events: each replica id mapped to that replica's local history, in order.  An entry is
                   bare content or a bare string for a local event, or one of `event`:func:,
@@ -25,13 +25,13 @@ release each of these landed in, and what is still waiting.
    :param overlays: your own CeTZ, drawn into the diagram at a layer of your choosing.  See
                     `Overlays <overlays>`:doc:.
 
-   The rest are the drawing's measurements.  Lengths without a unit are **canvas centimetres**: the
-   canvas is laid out at ``length: 1cm``, so ``2.0`` is two centimetres before the document scales
+   The rest are the drawing's measurements.  Lengths without a unit are **canvas centimeters**: the
+   canvas is laid out at ``length: 1cm``, so ``2.0`` is two centimeters before the document scales
    anything.
 
    The two gaps default to ``none``, which means *the value that suits this orientation* rather than
    no gap at all.  What a gap has to make room for is text, and text runs across the page whichever
-   way the diagram does — so the wider default belongs to whichever axis is lying horizontally, and
+   way the diagram does -- so the wider default belongs to whichever axis is lying horizontally, and
    turning a diagram on its side turns the two over with it.
 
    .. list-table::
@@ -51,13 +51,13 @@ release each of these landed in, and what is still waiting.
                    solver's columns land.  Along the page on a horizontal diagram, down it on a
                    vertical one.  A `gap`:func: span given as a ratio is taken against it, as is the
                    ``displacement`` that nudges a `send`:func:, `recv`:func: or `sync`:func: off its
-                   column — so widening the diagram widens those to match.  An `event's
+                   column -- so widening the diagram widens those to match.  An `event's
                    <event>`:func: ``displacement`` is the exception: it is a ratio of the label's
                    own extent, the label being what it moves.
 
    :param row-gap: the distance between two lanes.  Down the page on a horizontal diagram, across it
-                   on a vertical one — which is why its default is the larger of the two there: a
-                   label sitting beside a lane runs towards the next one.
+                   on a vertical one -- which is why its default is the larger of the two there: a
+                   label sitting beside a lane runs toward the next one.
 
    :param text-size: the text size the diagram is drawn at, and what every ``em`` inside it resolves
                      against.  A ``size: 0.8em`` on an event is therefore eight tenths of *this*
@@ -71,7 +71,7 @@ release each of these landed in, and what is still waiting.
                on.
 
    :param message-stroke: the stroke every message and `sync`:func: arrow is drawn with.  Its paint
-                          also colours the arrowheads and any label carried by an arrow, so one
+                          also colors the arrowheads and any label carried by an arrow, so one
                           value dresses the whole of the messaging.  `col-gap`:param: and
                           ``row-gap`` are the two to reach for when a diagram reads too cramped or
                           too sparse; ``dot`` and ``text-size`` are for when it is going somewhere
@@ -115,8 +115,8 @@ The orientation decides which sides a label may sit on, and which one it sits on
      - ``left``, ``right``
      - ``right``
 
-A side the orientation has no room for — `above`:value: on a vertical diagram, `left`:value: on a
-horizontal one — is *not* an error: it is dropped back to that default and otherwise ignored, so
+A side the orientation has no room for -- `above`:value: on a vertical diagram, `left`:value: on a
+horizontal one -- is *not* an error: it is dropped back to that default and otherwise ignored, so
 flipping a finished diagram from horizontal to vertical stays one edit rather than a compile error
 on every lane that named a side.  It passes in silence, which is not the ideal: the ideal is a
 compiler warning, and Typst gives user code no way to raise one.  Printing the complaint into the
@@ -133,11 +133,11 @@ saying nothing.
 
    :param label: what the diagram prints for the lane.  Defaults to ``name``.
 
-   :param color: the lane's colour.  Defaults to the next entry of ``default-palette``, cycled over
+   :param color: the lane's color.  Defaults to the next entry of ``default-palette``, cycled over
                  `replicas <replica>`:func: in order.
 
    :param position: ``above`` or ``below``, the side of the timeline this lane's event labels sit on
-                    — ``left`` or ``right`` on a vertical diagram; see `orientation`:arg:.
+                    -- ``left`` or ``right`` on a vertical diagram; see `orientation`:arg:.
 
    :param size: the text size of this lane's event labels.
 
@@ -158,36 +158,36 @@ saying nothing.
 
 .. typst:function:: event(..args)
 
-A local event on a replica's timeline.  Its body is the label — content or a plain string.
+A local event on a replica's timeline.  Its body is the label -- content or a plain string.
 
-- ``position`` — `above`:value: or `below`:value: the timeline, or `left`:value: or `right`:value:
+- ``position`` -- `above`:value: or `below`:value: the timeline, or `left`:value: or `right`:value:
   on a vertical diagram; see `orientation`:arg:.
 
-- ``size`` — the label's text size.
+- ``size`` -- the label's text size.
 
-- ``displacement`` — slides the label along the timeline, out of being centred on its own dot.  A
+- ``displacement`` -- slides the label along the timeline, out of being centred on its own dot.  A
   ratio is taken against the label's own width, so ``+50%`` leaves the label's left edge over the
   dot and ``-50%`` its right edge, while a length is an exact offset and ``0`` (or ``0%``) centres
   it.  On a vertical diagram the ratio is taken against the label's height instead, that being what
   runs along the timeline there.
 
-- ``width`` — wraps the label to a fixed width instead of letting it run along the timeline on one
-  line, which is what keeps a long label from crowding its neighbours.  \ **Named only**: a bare
+- ``width`` -- wraps the label to a fixed width instead of letting it run along the timeline on one
+  line, which is what keeps a long label from crowding its neighbors.  \ **Named only**: a bare
   length is read as a ``displacement``, that being the far commoner one to reach for.  The box is
-  centred on the mark like any other label, and its contents are left to you — wrap the body in
+  centred on the mark like any other label, and its contents are left to you -- wrap the body in
   ``align(center, ..)`` if centred lines read better than the ragged right edge.
 
-- ``halo`` — how far the label's backdrop reaches past the label's own box, which is what breaks an
+- ``halo`` -- how far the label's backdrop reaches past the label's own box, which is what breaks an
   arrow crossing the lane so it does not crowd the glyphs.  ``auto`` (the default) matches the reach
   of the disc under a mark, so a label and a dot break an arrow by the same amount; a length sets an
   exact reach, and ``none`` drops the backdrop, letting whatever is behind show through.
 
-- ``fill`` — what that backdrop is painted with.  ``auto`` (the default) is white, which is what
+- ``fill`` -- what that backdrop is painted with.  ``auto`` (the default) is white, which is what
   breaks whatever runs behind the label; a paint is used as given, so a label sitting in a wash an
   `overlay <overlays>`:doc: laid down can be given that same wash and read as part of it rather than
   as a hole punched in it; and ``none`` leaves the backdrop unpainted, which is ``halo: none`` with
   the label's box kept.  A translucent paint hides no more than it says, so an arrow behind a washed
-  label still shows through — and a translucent fill over a wash of its own colour compounds with it
+  label still shows through -- and a translucent fill over a wash of its own color compounds with it
   into a slightly darker patch.
 
 The dot itself never moves: it is the event's place in time, which the layout solves for.
@@ -203,19 +203,19 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
    The points where the message ``name`` leaves one replica and is applied on another.  Exactly one
    ``send`` and one ``recv`` must exist for each name.
 
-   An optional label for the point goes positionally — ``send("push")[pushed]``, ``recv("pull")[now
-   duplicated]`` — or as ``body``, with ``size`` setting its text size and ``at`` overriding the
+   An optional label for the point goes positionally -- ``send("push")[pushed]``, ``recv("pull")[now
+   duplicated]`` -- or as ``body``, with ``size`` setting its text size and ``at`` overriding the
    side it sits on.
 
    Both take ``displacement``, which nudges the point off the column it is solved into, in either
    direction.  A ratio is taken against the column gap.  Only the defaults differ:
 
-   - on a ``recv`` it is ``1cm`` — how far right of its ``send`` the point lands whenever nothing on
+   - on a ``recv`` it is ``1cm`` -- how far right of its ``send`` the point lands whenever nothing on
      its own replica pushes it further, and enough to lean the arrow forward.  ``recv(...,
      displacement: none)`` leaves it on its column, drawing a vertical arrow when the receiving
      replica has nothing else competing for that column.
 
-   - on a ``send`` it is ``none`` — a send sits on its own column unless you say otherwise, since it
+   - on a ``send`` it is ``none`` -- a send sits on its own column unless you say otherwise, since it
      is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever
      a vertical line would otherwise run through, or to separate two sends the solver put in one
      column.
@@ -239,7 +239,7 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
 .. typst:function:: sync(name, ..args)
 
    One end of a two-way exchange.  In a single round trip each side gives the other the events it
-   lacks, so both ends come out of the exchange holding the same events — which is not the same as
+   lacks, so both ends come out of the exchange holding the same events -- which is not the same as
    holding the same state, so each end takes its own label.  A ``send``/``recv`` pair is the one-way
    message by comparison.
 
@@ -251,7 +251,7 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
    before the other one starts it.  A name cannot be both a ``sync`` and a ``send``/``recv``
    message.
 
-   An optional label for the point goes positionally — ``sync("push")[rolled back]`` — or as
+   An optional label for the point goes positionally -- ``sync("push")[rolled back]`` -- or as
    ``body``, with ``size`` setting its text size, ``at`` forcing the side the label sits on, and
    ``halo`` and ``fill`` setting its backdrop as they do on an `event`:func:.  ``label`` instead
    labels the arrow itself; either end may carry it, and the first one given wins.  ``displacement``
@@ -284,7 +284,7 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
 .. typst:function:: gap(size)
 
    Elided time: a stretch of dotted timeline standing for events the diagram does not show, taking
-   one column of its own.  The size is how much of that column the dots span — ``"small"``,
+   one column of its own.  The size is how much of that column the dots span -- ``"small"``,
    ``"medium"`` (the default) or ``"large"``, or a length or a ratio of the column gap for an exact
    span, which past a full column runs into the neighbouring marks.
 
@@ -305,12 +305,12 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
 
 .. typst:value:: default-palette
 
-   The lane colours, cycled over `replicas <replica>`:func: in order.  Override per replica with
+   The lane colors, cycled over `replicas <replica>`:func: in order.  Override per replica with
    ``replica("A", red)``.
 
 .. typst:argument:: overlays
 
    An escape hatch for drawing arbitrary CeTZ into a diagram, in the diagram's own coordinates,
-   addressing the diagram's own points, and at a chosen depth — a band behind a stretch of time, a
+   addressing the diagram's own points, and at a chosen depth -- a band behind a stretch of time, a
    ring around the event that went wrong, a note that breaks around the lanes the way its own arrow
    does.  It has a page of its own: `Overlays <overlays>`:doc:.

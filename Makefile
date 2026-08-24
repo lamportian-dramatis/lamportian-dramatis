@@ -15,7 +15,7 @@ VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' typst.toml)
 
 # What a submission is made of, in the three groups typst/packages asks for.
 #
-# Required: without these the package does not work, or does not carry its own licence and its own
+# Required: without these the package does not work, or does not carry its own license and its own
 # minimal offline documentation.  They go in the archive users download.
 DIST := typst.toml lib.typ README.md LICENSE
 

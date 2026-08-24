@@ -37,13 +37,13 @@
     // -- what a diagram like this carries forward is messages, not light, so each edge of it is
     // aimed at something the messages actually did.
     //
-    // Towards S it is aimed at the exchange that tells S about `A.2`, so S is taken in exactly
-    // there, and it runs flat afterwards, S being the last lane that way.  Towards C it is aimed a
-    // centimetre past C's own last event: no event on that lane is in this future -- the message C
+    // Toward S it is aimed at the exchange that tells S about `A.2`, so S is taken in exactly
+    // there, and it runs flat afterwards, S being the last lane that way.  Toward C it is aimed a
+    // centimeter past C's own last event: no event on that lane is in this future -- the message C
     // receives was sent before S had heard of `A.2`, and nothing leaves S for C afterwards -- so
     // the edge may cross that lane, but only where there is nothing left to cross into.
     //
-    // `col-gap` is centimetres per column, so `1 / col-gap` is a centimetre said in columns, and it
+    // `col-gap` is centimeters per column, so `1 / col-gap` is a centimeter said in columns, and it
     // is the orientation's own value.  That is what lets this read the same whichever way time
     // runs: no lengths on the page, only the diagram's own axes.
     //
@@ -56,12 +56,12 @@
       let (a, s, c) = (lane-of("A"), lane-of("S"), lane-of("C"))
       let apex = column("A", "a2")
       let crossing = column("C", -1) + 1 / col-gap
-      let towards-c = (c - a) / (crossing - apex)
+      let toward-c = (c - a) / (crossing - apex)
       line(
         point(apex, a),
         point(column("S", "a-pushes"), s - 0.4),
         point(ends, s - 0.4),
-        point(ends, a + towards-c * (ends - apex)),
+        point(ends, a + toward-c * (ends - apex)),
         close: true,
         fill: wash,
         stroke: none,

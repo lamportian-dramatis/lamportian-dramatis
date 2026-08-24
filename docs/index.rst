@@ -8,7 +8,7 @@ of `Time, Clocks, and the Ordering of Events in a Distributed System
 <https://lamport.azurewebsites.net/pubs/time-clocks.pdf>`__.
 
    **Pre-1.0.**  This is young and still changing a lot.  Nothing here is a stable API until 1.0.0,
-   so expect breaking changes between 0.x releases — argument names, defaults and the shape of what
+   so expect breaking changes between 0.x releases -- argument names, defaults and the shape of what
    the helpers return are all still open.  A Typst import names an exact version, so nothing breaks
    under you: upgrading is always a deliberate edit.
 
@@ -56,18 +56,18 @@ The whole document that draws it:
 Read on
 -------
 
-- `Guide <guide>`:doc: — how to read the marks, how the columns are solved, and how a diagram
+- `Guide <guide>`:doc: -- how to read the marks, how the columns are solved, and how a diagram
   becomes a cross-referenced figure.
 
-- `Reference <reference>`:doc: — every function and every argument.
+- `Reference <reference>`:doc: -- every function and every argument.
 
-- `Overlays <overlays>`:doc: — drawing your own CeTZ into a diagram, addressing its own points, at a
+- `Overlays <overlays>`:doc: -- drawing your own CeTZ into a diagram, addressing its own points, at a
   depth of your choosing.
 
-- `Gallery <gallery>`:doc: — every example that ships with the package, each a complete document,
+- `Gallery <gallery>`:doc: -- every example that ships with the package, each a complete document,
   with its source.
 
-- `Changelog <changelog>`:doc: — what each release changed, and what is waiting unreleased.
+- `Changelog <changelog>`:doc: -- what each release changed, and what is waiting unreleased.
 
 Elsewhere
 ---------

@@ -28,7 +28,7 @@ diagram the `front page <index>`:doc: leads with, and the one whose code is prin
 .. image:: gallery/vertical.png
    :alt: The same scenario drawn vertically, the timelines running down the page
 
-The same scenario under ``orientation: vertical``, and *nothing* else changed — the arguments are
+The same scenario under ``orientation: vertical``, and *nothing* else changed -- the arguments are
 the ones ``gorgeous.typ`` declares:
 
 .. code:: typst
@@ -62,7 +62,7 @@ through it, and a ring at ``marks`` so ``A.2``'s own label stays legible over it
 .. image:: gallery/vertical-overlays.png
    :alt: The same future cone in a vertical diagram, the cone opening downwards
 
-The same cone in a vertical diagram, imported from ``overlays.typ`` the same way — the overlay
+The same cone in a vertical diagram, imported from ``overlays.typ`` the same way -- the overlay
 included.  The drawing is written in columns and lanes rather than in page coordinates, so it turns
 with the diagram instead of being redrawn for it, which is the point of `staying
 orientation-independent <overlays:Staying orientation-independent>`:ref:.
@@ -76,8 +76,8 @@ orientation-independent <overlays:Staying orientation-independent>`:ref:.
    :alt: A diagram with each of its parts named: a sync, a local event, a send and the receive it
          feeds, an elided stretch of time, and a timeline of its own
 
-Every part of a diagram named, each with a rectangle from the locator round it — or a ring built out
-of ``mark`` and ``dot`` — and a note hung off that.  The callouts are drawn at ``foreground``, so
+Every part of a diagram named, each with a rectangle from the locator round it -- or a ring built out
+of ``mark`` and ``dot`` -- and a note hung off that.  The callouts are drawn at ``foreground``, so
 they read over the whole diagram; the rings at ``marks``, so each dot's own label stays legible over
 the ring round it.  It is the picture the `guide <guide>`:doc: opens on.
 

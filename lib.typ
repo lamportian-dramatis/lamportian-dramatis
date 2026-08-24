@@ -16,7 +16,7 @@
 
 #import "@preview/cetz:0.5.2"
 
-/// Lane colours, cycled over `replicas` in order.  Override per replica with
+/// Lane colors, cycled over `replicas` in order.  Override per replica with
 /// `(id: "Shore", color: red)`.
 #let default-palette = (
   rgb("#1f6feb"),
@@ -49,7 +49,7 @@
 
 /// What each orientation means to the drawing.  `time` is the unit direction of increasing logical
 /// time and `lane` that of increasing replica index, both in canvas coordinates; `sides` are the two
-/// sides a label may sit on, the one towards lane 0 first, and `default-side` is whichever of those
+/// sides a label may sit on, the one toward lane 0 first, and `default-side` is whichever of those
 /// two a label sits on when nothing else has a say.  `along` names the dimension of a label that runs
 /// along the timelines, which is what a ratio displacement is taken against, and `name-anchor` puts a
 /// replica's own name just off the start of its lane.
@@ -205,7 +205,7 @@
 /// which the layout solves for.
 ///
 /// `width` wraps the label to a fixed width instead of letting it run along the timeline on one line,
-/// which is what keeps a long label from crowding its neighbours.  It must be named: a bare length is
+/// which is what keeps a long label from crowding its neighbors.  It must be named: a bare length is
 /// read as a `displacement`, since that is the far commoner one to reach for.  The box is centred on
 /// the mark like any other label, and its contents are left to the caller -- wrap the body in
 /// `align(center, ..)` if centred lines read better than the ragged right edge.
@@ -512,7 +512,7 @@
   )
 }
 
-/// How far a label's backdrop reaches past the label's own box by default, in canvas centimetres.
+/// How far a label's backdrop reaches past the label's own box by default, in canvas centimeters.
 /// It matches the reach of the disc under a mark, so a label and a dot break an arrow behind them by
 /// the same amount and the two read as sitting on one plane.
 #let _label-halo = 0.07
@@ -576,7 +576,7 @@
 
 /// A replica lane, and the defaults the local events on it fall back on.  `name` is the id that the
 /// `events` dictionary keys on; `label` is what the diagram prints for the lane and `color` is its
-/// colour, either of which may also be given positionally -- colours are told apart by type.
+/// color, either of which may also be given positionally -- colors are told apart by type.
 ///
 /// The rest are defaults for this lane's events, each still overridable event by event: `position`
 /// (`above`/`below` on a horizontal diagram, `left`/`right` on a vertical one, positional too) is the
@@ -606,7 +606,7 @@
       lane-color = arg
     } else {
       panic(
-        "lamport-diagram: a replica takes only a side or a colour positionally -- give `label`, "
+        "lamport-diagram: a replica takes only a side or a color positionally -- give `label`, "
           + "`size`, `displacement` and `first-displacement` by name",
       )
     }
@@ -832,7 +832,7 @@
 ///
 /// With a `caption` the result is a `figure`; without one it is the bare drawing.  `col-gap` is the
 /// spacing between two columns of logical time and `row-gap` that between two lanes, both in canvas
-/// centimetres, and they are the knobs for a diagram that reads too cramped or too sparse.
+/// centimeters, and they are the knobs for a diagram that reads too cramped or too sparse.
 #let lamport-diagram(
   caption: none,
   replicas: (),
@@ -851,7 +851,7 @@
   for (name, value) in (("col-gap", col-gap), ("row-gap", row-gap)) {
     assert(
       value == none or type(value) in (int, float),
-      message: "lamport-diagram: `" + name + "` is a number of canvas centimetres, or `none` for the "
+      message: "lamport-diagram: `" + name + "` is a number of canvas centimeters, or `none` for the "
         + "one that suits the orientation",
     )
   }
@@ -905,7 +905,7 @@
   // line it sits on, it reads as a dot of ink in the ring rather than as a mark of its own.
   let lane-thickness = 1.1pt
   let sync-pip = 0.8 * lane-thickness / 2 / 1cm
-  // The two axes of the drawing, both in canvas centimetres: `t` runs along the timelines and `r`
+  // The two axes of the drawing, both in canvas centimeters: `t` runs along the timelines and `r`
   // across them.  Everything below is written in those terms and only `point` knows which way round
   // they are on the page, so the four orientations share one body of drawing code.
   let t-of = c => c * col-gap
@@ -939,11 +939,11 @@
 
   // Label sides for send/recv points default to the side the arrow does *not* occupy, so an arrow
   // running straight across the lanes never runs through its own endpoint labels.  `near-side` is the
-  // one towards the first replica and `far-side` the one away from it -- `above`/`below` on a
+  // one toward the first replica and `far-side` the one away from it -- `above`/`below` on a
   // horizontal diagram, `left`/`right` on a vertical one.  A point with no arrow to dodge falls back
   // on the orientation's own default side instead.
   let side-of = (it, ri) => {
-    // The lane this item's arrow runs towards, if it has one.
+    // The lane this item's arrow runs toward, if it has one.
     let other = if it.kind == "send" {
       msgs.at(it.name).recv.at(0)
     } else if it.kind == "recv" {
@@ -967,7 +967,7 @@
   // Replica names get a strip of their own, before the start of every lane and clear of every event
   // label.  Without this a first-column label overhangs the start of its timeline and reads as
   // belonging to the replica name rather than to its own dot, even though the two never touch.  Needs
-  // the laid-out size of each label, hence `context`; canvas units are centimetres, fixed by
+  // the laid-out size of each label, hence `context`; canvas units are centimeters, fixed by
   // `length: 1cm` below.
   let drawing = context {
     // A point's own text size, and any displacement or gap span given as a length, resolve here
@@ -1178,12 +1178,12 @@
 
     // A rectangle comes back as the two opposite corners CeTZ draws one from, ready to spread into
     // `rect` -- and into anything else that takes two corners, so the same call outlines a region or
-    // washes it.  `pad` grows it on every side, in canvas centimetres: one number for all four sides,
+    // washes it.  `pad` grows it on every side, in canvas centimeters: one number for all four sides,
     // or a pair said the way the diagram is said -- how far along the timelines, how far across them
     // -- which is what keeps a padded box the same box when the diagram is turned on its side.
     let grown = (x0, y0, x1, y1, pad) => {
       let complaint = (
-        "lamport-diagram: `pad` is a number of canvas centimetres, or two of them -- one along the "
+        "lamport-diagram: `pad` is a number of canvas centimeters, or two of them -- one along the "
           + "timelines and one across them"
       )
       let (along, across) = if type(pad) == array {
@@ -1202,7 +1202,7 @@
         (calc.max(x0, x1) + gx, calc.max(y0, y1) + gy),
       )
     }
-    // The same, for a region said in the diagram's own axes: a stretch of time in canvas centimetres,
+    // The same, for a region said in the diagram's own axes: a stretch of time in canvas centimeters,
     // and a stretch of lanes.
     let axes-rect = (t0, t1, r0, r1, pad) => {
       let (x0, y0) = point(t0, r0)
@@ -1274,8 +1274,9 @@
         let (ri, ii) = index-of(replica, key)
         cols.at(ri).at(ii)
       },
-      // Where the drawing put that point along the lanes, in columns: its column plus whatever
-      // `displacement` leant it off that column.  `column` is the moment the solver settled on and
+      // Where the drawing put that point along the lanes: the column it was solved into, plus
+      // whatever `displacement` leant it off that column.  A time is a position on that axis and not
+      // a count of anything -- it is whole where it falls on a column and fractional between two.  `column` is the moment the solver settled on and
       // this is the moment the mark was drawn at, and the two are the same number until a
       // displacement separates them -- which is what a `recv` does by default.
       time: (replica, key) => {
@@ -1368,7 +1369,7 @@
         let ri = lane-of(replica)
         assert(
           type(ri) == int and ri >= 0 and ri < lanes.len(),
-          message: "lamport-diagram: a colour belongs to a replica, so name one rather than a lane "
+          message: "lamport-diagram: a color belongs to a replica, so name one rather than a lane "
             + "between two of them",
         )
         lanes.at(ri).color
@@ -1485,7 +1486,7 @@
       let halo = (paint: halo-paint, thickness: 5pt, cap: "round")
 
       // Layer 1: every lane's backdrop, over the arrows and under everything else.  It is laid for
-      // all lanes before any lane's line, so no lane's backdrop can eat a neighbour's timeline.  It
+      // all lanes before any lane's line, so no lane's backdrop can eat a neighbor's timeline.  It
       // is solid even under an elided stretch: white on white shows nothing, and the dots drawn over
       // it still say the stretch is elided.
       for (ri, _) in lanes.enumerate() {

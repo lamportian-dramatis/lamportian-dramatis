@@ -25,18 +25,18 @@ Reading a diagram
        the sender, so neither is drawn as one; the inner dot is what tells a sync's end from a
        receive without following the arrow out to count its heads.
    * - Dotted timeline
-     - Elided time — events the diagram does not show.
+     - Elided time -- events the diagram does not show.
    * - Timeline arrowhead
      - Every lane ends in one: it says which way time runs, and that the lane goes on past what is
        drawn.
 
-A receive is drawn by default a centimetre further along in time than its send, so every message
+A receive is drawn by default a centimeter further along in time than its send, so every message
 arrow follows the direction of time without the diagram needing padding put in by hand.  \
 ``recv(..., displacement: none)`` puts it in the send's own column instead, for an arrow that runs
 straight across the lanes.
 
-Labels are centred on their own mark and sit on the orientation's default side — ``above`` a
-horizontal timeline, ``right`` of a vertical one — except a lane's opening label on a horizontal
+Labels are centred on their own mark and sit on the orientation's default side -- ``above`` a
+horizontal timeline, ``right`` of a vertical one -- except a lane's opening label on a horizontal
 diagram, nudged forward in time so it does not read as belonging to the replica name at its left.  A
 vertical lane takes no such nudge: its name sits before the lane *in time* while its labels sit
 beside it, so the two were never at risk of reading as one.  \ ``event`` overrides both for one
@@ -55,7 +55,7 @@ You list each replica's local events in order and name the messages.  The layout
 event in the earliest column that keeps it after its predecessor on the same replica *and* after the
 send of every message it receives.
 
-Two things follow.  A diagram stays correct while you insert events — nothing needs re-padding,
+Two things follow.  A diagram stays correct while you insert events -- nothing needs re-padding,
 because no position along the time axis was ever written by hand.  And a receive that would land
 before its own send is a causal cycle, which fails compilation instead of quietly drawing a
 backwards arrow.
