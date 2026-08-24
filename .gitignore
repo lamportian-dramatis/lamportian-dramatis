@@ -1,0 +1,6 @@
+# Built by `make docs` and `make preview`: the changelog the site shows is converted from the one at
+# the root, the pictures are copied from gallery/, and .preview/ is where a watched build lands.
+/.preview/
+/.doctrees/
+/docs/changelog.rst
+/docs/gallery/
