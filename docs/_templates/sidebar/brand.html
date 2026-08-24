@@ -1,0 +1,19 @@
+{% extends "!sidebar/brand.html" %}
+
+{# The mark before the name, rather than the theme's logo stacked above it.  Furo builds the brand
+   from a `brand_content` block for exactly this, so only the contents are replaced and the link
+   round them stays the theme's.
+
+   The icon is the favicon: the sidebar is the one other place the package has to identify itself in
+   a few pixels, and drawing it twice would be two things to keep in step.  `html_logo` is left
+   unset on purpose -- setting it would put Furo's own centred logo above the name, which is the
+   arrangement this replaces.
+
+   `alt` is empty because the icon is decorative here: the name it illustrates is the next thing in
+   the same link, and a screen reader announcing "Logo lamportian-dramatis" only says it twice. #}
+{% block brand_content %}
+  <img class="sidebar-icon" src="{{ pathto('_static/favicon.svg', 1) }}" alt="">
+  {% if not theme_sidebar_hide_name %}
+  <span class="sidebar-brand-text">{{ docstitle if docstitle else project }}</span>
+  {%- endif %}
+{% endblock brand_content %}

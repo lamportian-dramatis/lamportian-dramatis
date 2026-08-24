@@ -1,3 +1,6 @@
+import pathlib
+import sys
+
 # The documentation at https://lamportian-dramatis.github.io/.
 #
 # Sphinx is pinned and run through `uvx` -- see the `docs` target in the Makefile -- so the site a
@@ -12,7 +15,23 @@ copyright = "2026, Manuel Vázquez Acosta"
 # `autosectionlabel` is what lets one page point at a section of another by its title, which is how
 # the pages already cross-reference each other.  Prefixing with the document name keeps two pages
 # from claiming the same section title.
-extensions = ["sphinx.ext.autosectionlabel"]
+# `_ext` carries the Typst domain: the library's own functions, values and locator entries are
+# documented as objects rather than as sections, which is what gives them signatures, argument fields
+# and a cross-reference target.  Making it the primary domain lets a page write :func:`sync` without
+# spelling the domain out every time, and :any:`sync` resolves through it as well.
+sys.path.insert(0, str(pathlib.Path(__file__).parent / "_ext"))
+
+extensions = ["sphinx.ext.autosectionlabel", "typstdomain"]
+primary_domain = "typst"
+
+# A ten-argument signature does not belong on one line; past this many characters Sphinx
+# breaks one argument per line instead.
+maximum_signature_line_length = 70
+
+# A cross-reference that resolves to nothing renders as plain text and says nothing about it, which
+# is how a reference to a renamed object rots unnoticed.  Nitpicky mode turns every one of them into
+# a warning, which is what a rename needs in order to be finished rather than merely started.
+nitpicky = True
 autosectionlabel_prefix_document = True
 # The changelog repeats "Added" and "Changed" under every version; labelling those would be
 # ambiguous and nothing points at them.  Two levels reaches every section that is referenced.
@@ -38,6 +57,17 @@ html_static_path = ["_static"]
 # copying them in beside the HTML would only be a second, staler copy.
 html_copy_source = False
 html_show_sourcelink = False
+
+# The favicon is the diagram at the one size a favicon is ever seen: two timelines running to their
+# arrowheads, an event on each.  `favicon.svg` is the drawing and `favicon.ico` is rendered from it
+# by `make icon`, at 16, 32 and 48 px -- each rendered from the vector rather than resampled from
+# the next size up, which is what keeps the 16 px entry crisp.
+#
+# Two files rather than one because Safari has been the laggard on SVG favicons, and Sphinx emits a
+# single favicon <link>.  So the `.ico`, which every browser reads, is the one Sphinx names, and
+# `_templates/layout.html` adds the SVG beside it for the browsers that would rather have the vector.
+templates_path = ["_templates"]
+html_favicon = "_static/favicon.ico"
 
 # Sphinx emits a real <link> for an absolute URL, so the faces are fetched rather than merely named
 # in a stack that falls through to whatever the reader happens to have.

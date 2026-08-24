@@ -1,0 +1,14 @@
+{% extends "!base.html" %}
+
+{# Sphinx emits one favicon <link> and no more, and `html_favicon` in conf.py spends it on the .ico
+   that every browser reads.  This adds the vector beside it: a browser that understands
+   `image/svg+xml` prefers it and gets a mark that is sharp at any size, and one that does not
+   ignores the link and keeps the .ico.
+
+   `base.html` rather than `layout.html`, which is where a Sphinx theme usually keeps its <head>:
+   Furo does not support being inherited from through `layout.html`, and replaces any page that
+   tries with an error page saying so. #}
+{% block extrahead %}
+  {{ super() }}
+  <link rel="icon" href="{{ pathto('_static/favicon.svg', 1) }}" type="image/svg+xml">
+{% endblock %}

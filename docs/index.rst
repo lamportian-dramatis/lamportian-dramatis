@@ -1,9 +1,16 @@
 lamportian-dramatis
 ===================
 
-Lamport diagrams for replicated systems, as a `Typst <https://typst.app/>`__ package: one horizontal timeline per replica, local events as dots on that timeline, and arrows for the messages that carry events from one replica to another.  The horizontal axis is logical time, in the sense of the clocks of `Time, Clocks, and the Ordering of Events in a Distributed System <https://lamport.azurewebsites.net/pubs/time-clocks.pdf>`__.
+Lamport diagrams for replicated systems, as a `Typst <https://typst.app/>`__ package: one horizontal
+timeline per replica, local events as dots on that timeline, and arrows for the messages that carry
+events from one replica to another.  The horizontal axis is logical time, in the sense of the clocks
+of `Time, Clocks, and the Ordering of Events in a Distributed System
+<https://lamport.azurewebsites.net/pubs/time-clocks.pdf>`__.
 
-   **Pre-1.0.**  This is young and still changing a lot.  Nothing here is a stable API until 1.0.0, so expect breaking changes between 0.x releases — argument names, defaults and the shape of what the helpers return are all still open.  A Typst import names an exact version, so nothing breaks under you: upgrading is always a deliberate edit.
+   **Pre-1.0.**  This is young and still changing a lot.  Nothing here is a stable API until 1.0.0,
+   so expect breaking changes between 0.x releases — argument names, defaults and the shape of what
+   the helpers return are all still open.  A Typst import names an exact version, so nothing breaks
+   under you: upgrading is always a deliberate edit.
 
 .. image:: gallery/gorgeous.png
    :alt: A fictional scenario showing a convergence bug in a fictional system
@@ -49,11 +56,18 @@ The whole document that draws it:
 Read on
 -------
 
-- :doc:`Guide <guide>` — how to read the marks, how the columns are solved, and how a diagram becomes a cross-referenced figure.
-- :doc:`Reference <reference>` — every function and every argument.
-- :doc:`Overlays <overlays>` — drawing your own CeTZ into a diagram, addressing its own points, at a depth of your choosing.
-- :doc:`Gallery <gallery>` — every example that ships with the package, each a complete document, with its source.
-- :doc:`Changelog <changelog>` — what each release changed, and what is waiting unreleased.
+- `Guide <guide>`:doc: — how to read the marks, how the columns are solved, and how a diagram
+  becomes a cross-referenced figure.
+
+- `Reference <reference>`:doc: — every function and every argument.
+
+- `Overlays <overlays>`:doc: — drawing your own CeTZ into a diagram, addressing its own points, at a
+  depth of your choosing.
+
+- `Gallery <gallery>`:doc: — every example that ships with the package, each a complete document,
+  with its source.
+
+- `Changelog <changelog>`:doc: — what each release changed, and what is waiting unreleased.
 
 Elsewhere
 ---------

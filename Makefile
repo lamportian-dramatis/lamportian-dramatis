@@ -39,7 +39,7 @@ IMAGES := $(SOURCES:.typ=.png)
 DATA_HOME := $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
 LOCAL := $(DATA_HOME)/typst/packages/preview/$(NAME)/$(VERSION)
 
-.PHONY: all gallery check install uninstall manifest publish docs preview clean
+.PHONY: all gallery check install uninstall manifest publish docs preview icon clean
 
 all: gallery
 
@@ -84,6 +84,20 @@ docs: gallery docs/changelog.rst
 preview: gallery docs/changelog.rst
 	@mkdir -p docs/gallery && cp $(IMAGES) docs/gallery/
 	$(SPHINX_SERVE) --port 4983 docs .preview
+
+## Render the favicon from its drawing.  Each size is rendered from the vector rather than resampled
+## from the next one up, because a 16 px entry downscaled from 48 is a smudge and a 16 px entry drawn
+## at 16 is not.  Both files are committed, the way the gallery's images are, so an ordinary docs
+## build needs neither of these tools -- only a change to the SVG does, which is why `docs` does not
+## depend on this.
+icon: docs/_static/favicon.ico
+
+docs/_static/favicon.ico: docs/_static/favicon.svg
+	@command -v rsvg-convert >/dev/null && command -v magick >/dev/null || \
+	  { echo "rsvg-convert and magick are needed to rebuild the favicon"; exit 1; }
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	for s in 16 32 48; do rsvg-convert -w $$s -h $$s $< -o "$$tmp/$$s.png" || exit 1; done && \
+	magick "$$tmp/16.png" "$$tmp/32.png" "$$tmp/48.png" $@ && echo "$@"
 
 ## The changelog is written once, in Markdown at the root, and converted for the site.  Sentences are
 ## spaced two apart in this project and a converter collapses runs of whitespace, so the second space
