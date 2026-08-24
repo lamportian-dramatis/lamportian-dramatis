@@ -25,7 +25,7 @@
       sync("boot"),
       event(id: "a2")[A.2],
       sync("a-pushes"),
-      sync("a-catches-up", halo: none)[Bug: A $!=$ C],
+      sync("a-catches-up", fill: none)[Bug: A $!=$ C],
     ),
   ),
   overlays: (
