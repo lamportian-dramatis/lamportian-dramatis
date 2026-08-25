@@ -286,7 +286,7 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
    Elided time: a stretch of dotted timeline standing for events the diagram does not show, taking
    one column of its own.  The size is how much of that column the dots span -- ``"small"``,
    ``"medium"`` (the default) or ``"large"``, or a length or a ratio of the column gap for an exact
-   span, which past a full column runs into the neighbouring marks.
+   span, which past a full column runs into the neighboring marks.
 
    Usable bare or called, so ``gap``, ``gap()`` and ``gap("medium")`` are the same thing.
 

@@ -81,7 +81,7 @@ html_css_files = [
 # that gives the page a voice; the text they head is Literata, which was drawn for reading on screens
 # and keeps a large x-height and unambiguous letterforms at body sizes.  Code is Inconsolata.
 #
-# Fonts do not change with the colour scheme, so they are set once, in the light block: Furo's dark
+# Fonts do not change with the color scheme, so they are set once, in the light block: Furo's dark
 # block overrides only what it lists.
 html_theme_options = {
     "light_css_variables": {

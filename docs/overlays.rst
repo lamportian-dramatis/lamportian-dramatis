@@ -322,7 +322,7 @@ What the locator holds
    mark's own fill, so a drawing that restates both puts this one second.
 
    The diagram draws that dot from exactly this, the same way it draws the ring from ``mark-args``.  So
-   an overlay that recolours an end of an exchange has both halves of it to hand:
+   an overlay that recolors an end of an exchange has both halves of it to hand:
 
    .. code:: typst
 
@@ -413,7 +413,7 @@ what keeps a padded box the same box when the diagram is turned on its side:
 .. code:: typst
 
    gap-rect("R1", 3)                  // exactly the dotted span, and nothing more
-   gap-rect("R1", 3, pad: 0.1)        // a millimetre of air on every side
+   gap-rect("R1", 3, pad: 0.1)        // a millimeter of air on every side
    gap-rect("R1", 3, pad: (0, 0.14))  // tight in time, standing clear of the lane
 
 Unpadded, a rectangle is exactly the part it names, and that is what makes it worth asking for: the

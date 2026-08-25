@@ -428,13 +428,13 @@
 }
 
 /// How much of its column each named `gap` size spans, as a fraction of the column gap.  Even `large`
-/// stops short of the marks in the neighbouring columns.
+/// stops short of the marks in the neighboring columns.
 #let _gap-spans = (small: 0.35, medium: 0.6, large: 0.85)
 
 /// Elided time: a stretch of dotted timeline standing for events the diagram does not show, taking
 /// one column of its own.  The size is how much of that column the dots span -- `"small"`,
 /// `"medium"` (the default) or `"large"`, or a length or a ratio of the column gap for an exact span,
-/// which past a full column runs into the neighbouring marks.  Usable bare or called, so `gap`,
+/// which past a full column runs into the neighboring marks.  Usable bare or called, so `gap`,
 /// `gap()` and `gap("medium")` are the same thing.
 #let gap(..args) = {
   let positional = args.pos()
