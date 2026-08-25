@@ -259,7 +259,7 @@ shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the sam
    nudges this end off the shared column, which tilts the arrow away from whatever the vertical line
    would otherwise run through; it is a drawing offset and says nothing about the order.
 
-   .. code:: typst
+   .. typst-code::
 
       #lamport-diagram(
         replicas: ("Client A", replica("Server", below), replica("Client B", below)),

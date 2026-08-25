@@ -66,7 +66,7 @@ Figures and cross-references
 Attach the ``<label>`` *after* the call.  With a ``caption`` the function returns a ``figure``, so
 the reference resolves to it and it numbers alongside the document's other figures.
 
-.. code:: typst
+.. typst-code::
 
    #lamport-diagram(
      caption: [`DeleteFile1` can be applied twice under concurrency],

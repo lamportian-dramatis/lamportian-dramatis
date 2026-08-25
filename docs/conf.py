@@ -21,7 +21,7 @@ copyright = "2026, Manuel Vázquez Acosta"
 # spelling the domain out every time, and :any:`sync` resolves through it as well.
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "_ext"))
 
-extensions = ["sphinx.ext.autosectionlabel", "typstdomain"]
+extensions = ["sphinx.ext.autosectionlabel", "typstdomain", "typstcode"]
 primary_domain = "typst"
 
 # A ten-argument signature does not belong on one line; past this many characters Sphinx

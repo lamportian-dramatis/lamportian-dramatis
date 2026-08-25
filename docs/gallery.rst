@@ -31,7 +31,7 @@ diagram the `front page <index>`:doc: leads with, and the one whose code is prin
 The same scenario under ``orientation: vertical``, and *nothing* else changed -- the arguments are
 the ones ``gorgeous.typ`` declares:
 
-.. code:: typst
+.. typst-code::
 
    #import "gorgeous.typ": diagram
 

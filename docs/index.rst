@@ -17,7 +17,7 @@ of `Time, Clocks, and the Ordering of Events in a Distributed System
 
 The whole document that draws it:
 
-.. code:: typst
+.. typst-code::
 
    #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, below, above, send, recv, replica
 

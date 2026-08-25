@@ -71,24 +71,28 @@ Shape
 returning a CeTZ body, or a dictionary from layer name to either of those.  A body or a function on
 its own goes in the ``foreground``, that being what you want when you have not thought about depth.
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 2-18
+   :dedent:
 
+   #lamport-diagram(
    // nothing
-   overlays: none
+   overlays: none,
 
    // a bare body, for when you need no points -- drawn in foreground
-   overlays: { grid((0, 0), (8, -3)) }
+   overlays: { grid((0, 0), (8, -3)) },
 
    // a function, for when you want the diagram's points -- drawn in foreground
    overlays: d => {
      let (mark, ..) = d
      circle(mark("A", "bad"), radius: 0.3, stroke: red)
-   }
+   },
 
    // a dictionary, for when layering matters
    overlays: (
      backdrops: d => { ... },
      marks: d => { ... },
+   ),
    )
 
 Everything is spliced into the diagram's own ``cetz.canvas``, so a coordinate is a canvas centimeter
@@ -100,15 +104,19 @@ Your body is written in your own file, though, so the drawing commands have to b
 The package re-exports the CeTZ module it draws with, which saves pinning a second dependency and
 keeps the two versions in step:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 1-2,4-9
+   :dedent:
 
    #import "@preview/lamportian-dramatis:0.2.0": draw
 
+   #lamport-diagram(
    overlays: (
      marks: d => {
        import draw: *          // inside the body, so `circle` and `rect` go no further
        ...
      },
+   )
    )
 
 ``#import draw: *`` at the top of the file works as well, if you would rather have them everywhere.
@@ -177,7 +185,7 @@ The layers are part of the API
 Their names and their order are not an internal detail to be read off this page.  ``layers`` is the
 ordered array of them, bottom to top, and the package exports it:
 
-.. code:: typst
+.. typst-code::
 
    #import "@preview/lamportian-dramatis:0.2.0": layers
 
@@ -232,18 +240,26 @@ Addressing a point
 Every point on a lane is ``(replica, id)``.  An id need only be unique *within its own lane*, which
 is what lets a ``sync``'s two ends and a message's two ends keep the name that pairs them:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 2-4
+   :dedent:
 
+   #lamport-diagram(overlays: d => {
    mark("A", "bad")        // an event, by the id it was given
    mark("S", "a-pushes")   // this end of the sync;  mark("A", "a-pushes") is the other
    mark("C", "c-pushes")   // the send;  mark("S", "c-pushes") is its recv
+   })
 
 ``send``, ``recv`` and ``sync`` already carry a name, and that name is their id.  A local ``event``
 has none, so it takes one:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 2
+   :dedent:
 
-   "A": ([`A.1`], event(id: "bad")[`A.2`], sync("a-pushes")),
+   #lamport-diagram(events: (
+     "A": ([`A.1`], event(id: "bad")[`A.2`], sync("a-pushes")),
+   ))
 
 Ids are opt-in on purpose.  The alternative -- addressing an event by where it sits, ``A.0``,
 ``A.1``, … -- would put back exactly the fragility that solving the columns removed: insert one event
@@ -260,12 +276,16 @@ counting *every* item in the lane's array including ``gap`` and ``idle``.  It nu
 nothing else -- the columns the solver hands out count from ``0``, so the first item on a lane is
 index ``1`` and column ``0``:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 2-5
+   :dedent:
 
+   #lamport-diagram(overlays: d => {
    mark("A", 1)      // the lane's opening item
    mark("A", 3)
    mark("A", -1)     // the last item -- the one index that survives an insert
    column("B", 2)    // and the same wherever else a point is asked for
+   })
 
 Ids are strings and indices are integers, so the two never need telling apart by hand.  An index is
 what to reach for when naming a one-off is not worth it -- bearing in mind that it moves when you
@@ -294,18 +314,17 @@ What the locator holds
    It is for restating a mark rather than placing something near it.  Spread it and override what you
    want changed; a later argument wins, so the rest stays whatever the diagram chose:
 
-   .. code:: typst
+   .. typst-code::
+      :only-lines: 3-8
+      :dedent:
 
-      overlays: (
-        marks: d => {
-          import draw: *
-          let (mark-args, ..) = d
-          // Tint three marks, keeping the radius and the ring the diagram gave them.
-          for point in (("S", 3), ("S", 4), ("A", "a-catches-up")) {
-            circle(..mark-args(..point), fill: red.transparentize(55%))
-          }
-        },
-      )
+      #lamport-diagram(
+      overlays: d => {
+        // Tint three marks, keeping the radius and the ring the diagram gave them.
+        for point in (("S", 3), ("S", 4), ("A", "a-catches-up")) {
+          circle(..mark-args(..point), fill: red.transparentize(55%))
+        }
+      })
 
    The diagram draws its own marks from exactly this, which is the point of it: a hollow ring for a
    point where the replica touches the network, a solid dot for a purely local step, a send drawn
@@ -324,15 +343,21 @@ What the locator holds
    The diagram draws that dot from exactly this, the same way it draws the ring from ``mark-args``.
    So an overlay that recolors an end of an exchange has both halves of it to hand:
 
-   .. code:: typst
+   .. typst-code::
+      :only-lines: 6-9
+      :dedent:
 
-      overlays: (
-        marks: d => {
-          import draw: *
-          let (mark-args, pip-args, ..) = d
-          circle(..mark-args("A", "a-pushes"), fill: red.transparentize(55%))
-          circle(..pip-args("A", "a-pushes"), fill: red)
-        },
+      #lamport-diagram(
+        overlays: (
+          marks: d => {
+            import draw: *
+            let (mark-args, pip-args, ..) = d
+
+            circle(..mark-args("A", "a-pushes"), fill: red.transparentize(55%))
+            circle(..pip-args("A", "a-pushes"), fill: red)
+
+          },
+        )
       )
 
 .. typst:locator:: column(replica, id-or-index)
@@ -345,19 +370,23 @@ What the locator holds
    whole distinction.  You want the column whenever what you are drawing crosses lanes, because a
    coordinate is already on a lane.  A column is a time, so it goes straight into ``point``:
 
-   .. code:: typst
+   .. typst-code::
+      :only-lines: 6-11
+      :dedent:
 
-      overlays: (
-        backdrops: d => {
-          let (column, point, replicas, ..) = d
-          let last = replicas.len() - 1
-          rect(
-            point(column("C", "c-reads"), -0.4),
-            point(column("A", "a-catches-up"), last + 0.4),
-            fill: yellow.transparentize(85%),
-            stroke: none,
-          )
-        },
+      #lamport-diagram(
+        overlays: (
+          backdrops: d => {
+            let (column, point, replicas, ..) = d
+            let last = replicas.len() - 1
+            rect(
+              point(column("C", "c-reads"), -0.4),
+              point(column("A", "a-catches-up"), last + 0.4),
+              fill: yellow.transparentize(85%),
+              stroke: none,
+            )
+          },
+        )
       )
 
    ``mark("C", "c-reads")`` cannot start that rectangle: it sits on C's lane, not on the first one.
@@ -393,26 +422,40 @@ into anything else that takes two, ``content`` included.  Naming that ``rect`` l
 the anchors, which is what lets a note be hung off the box instead of off a position worked out by
 hand:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 6-7
+   :dedent:
 
-   overlays: (
-     foreground: d => {
-       import draw: *
-       let (gap-rect, ..) = d
-       rect(..gap-rect("R1", 3, pad: (0, 0.14)), stroke: (paint: gray, dash: "densely-dotted"), name: "elided")
-       content("elided.north", anchor: "south", text(fill: gray, [elided time]))
-     },
+   #lamport-diagram(
+     overlays: (
+       foreground: d => {
+         import draw: *
+         let (gap-rect, ..) = d
+         rect(..gap-rect("R1", 3, pad: (0, 0.14)), stroke: (paint: gray, dash: "densely-dotted"), name: "elided")
+         content("elided.north", anchor: "south", text(fill: gray, [elided time]))
+       },
+     )
    )
 
 ``pad`` grows a rectangle on every side, in canvas centimeters.  One number pads all four the same;
 a pair pads in the diagram's own axes -- how far along the timelines, how far across them -- which
 is what keeps a padded box the same box when the diagram is turned on its side:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 6-8
+   :dedent:
 
-   gap-rect("R1", 3)                  // exactly the dotted span, and nothing more
-   gap-rect("R1", 3, pad: 0.1)        // a millimeter of air on every side
-   gap-rect("R1", 3, pad: (0, 0.14))  // tight in time, standing clear of the lane
+   #lamport-diagram(
+     overlays: (
+       foreground: d => {
+         import draw: *
+         let (gap-rect, ..) = d
+         gap-rect("R1", 3)                  // exactly the dotted span, and nothing more
+         gap-rect("R1", 3, pad: 0.1)        // a millimeter of air on every side
+         gap-rect("R1", 3, pad: (0, 0.14))  // tight in time, standing clear of the lane
+       }
+     )
+   )
 
 Unpadded, a rectangle is exactly the part it names, and that is what makes it worth asking for: the
 diagram sets its names into the very box ``names-rect`` hands out, interrupts a lane over the very
@@ -507,11 +550,15 @@ Staying orientation-independent
 lanes, and lanes across it -- so a drawing written in terms of it survives a flip from
 `horizontal`:value: to `vertical`:value:.  One written against raw ``(x, y)`` arithmetic does not:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 3-5
+   :dedent:
 
-   let (point, ..) = d
-   line(point(2, "A"), point(2, "C"))   // flips cleanly
-   line((4, 0), (4, -3))                // does not
+   #lamport-diagram(..args, overlays: d => {
+     let (point, ..) = d
+     line(point(2, "A"), point(2, "C"))   // flips cleanly
+     line((4, 0), (4, -3))                // does not
+   })
 
 Fractional lanes are what make this work for nudges too.  "Just off the lane, toward the next one"
 is ``point(c, 0.15)`` whichever way the diagram runs, where a page-space ``(0, -0.3)`` would point
@@ -520,14 +567,19 @@ the wrong way the moment it turned.
 `span`:locator: stays in `times <time>`:term: for the same reason, and it is what lets a drawing run
 the full length of a lane without knowing where on the page that lane falls:
 
-.. code:: typst
+.. typst-code::
+   :only-lines: 3-9
+   :dedent:
 
-   overlays: (
-     timelines: d => {
-       let (span, point, ..) = d
-       let (s, e) = span
-       line(point(s, "B"), point(e, "B"), stroke: (paint: red, dash: "dashed"))
-     },
+   #lamport-diagram(
+     ..args,
+     overlays: (
+       timelines: d => {
+         let (span, point, ..) = d
+         let (s, e) = span
+         line(point(s, "B"), point(e, "B"), stroke: (paint: red, dash: "dashed"))
+       },
+     ),
    )
 
 That line lies along the lane, so the layer decides whether it shows at all: at ``backdrops`` the
@@ -562,7 +614,7 @@ Worked example
 The future cone of ``A.2``, drawn at ``backdrops`` so the lanes cross it without fading a stripe
 through it, and a ring at ``marks`` so ``A.2``'s own label stays legible over it.
 
-.. code:: typst
+.. typst-code::
 
    #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, replica, event, send, recv, sync, above, below, draw
 
