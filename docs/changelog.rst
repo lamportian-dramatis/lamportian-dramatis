@@ -14,7 +14,7 @@ Added
 ~~~~~
 
 - ``fill`` on `event`:func:, `send`:func:, `recv`:func: and `sync`:func:, which paints the backdrop
-  under a point's label.  \ ``auto`` keeps the white that has always broken whatever runs behind the
+  under a point's label.  ``auto`` keeps the white that has always broken whatever runs behind the
   label; a paint is used as given, so a label standing in a wash an overlay laid down can be given
   that same wash and read as part of it instead of as a hole punched in it; ``none`` leaves the
   backdrop unpainted, which is ``halo: none`` with the label's box kept.

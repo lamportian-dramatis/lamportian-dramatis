@@ -39,7 +39,7 @@ Labels are centred on their own mark and sit on the orientation's default side -
 horizontal timeline, ``right`` of a vertical one -- except a lane's opening label on a horizontal
 diagram, nudged forward in time so it does not read as belonging to the replica name at its left.  A
 vertical lane takes no such nudge: its name sits before the lane *in time* while its labels sit
-beside it, so the two were never at risk of reading as one.  \ ``event`` overrides both for one
+beside it, so the two were never at risk of reading as one.  ``event`` overrides both for one
 event, ``replica`` for a whole lane.
 
 Arrows are drawn first and everything else on top, so an arrow that crosses a lane it has no

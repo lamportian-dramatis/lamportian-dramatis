@@ -174,8 +174,8 @@ them is not what lies between but what they mean -- ``labels`` joins the diagram
 The layers are part of the API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Their names and their order are not an internal detail to be read off this page.  \ ``layers`` is
-the ordered array of them, bottom to top, and the package exports it:
+Their names and their order are not an internal detail to be read off this page.  ``layers`` is the
+ordered array of them, bottom to top, and the package exports it:
 
 .. code:: typst
 
@@ -184,12 +184,12 @@ the ordered array of them, bottom to top, and the package exports it:
    #layers
    // ("background", "arrows", "backdrops", "timelines", "marks", "labels", "foreground")
 
-They are plain strings, as orientations are, so ``overlays: (marks: ...)`` needs no import.  \
+They are plain strings, as orientations are, so ``overlays: (marks: ...)`` needs no import.
 ``layers`` is for when you want to check a name, walk the stack, or build an ``overlays`` dictionary
 out of something that is not a literal.
 
 Exposing them settles what would otherwise be a matter of taste: which layers to offer.  The answer
-is all of them, because the array claims to be how the diagram is drawn.  \ ``timelines`` earns its
+is all of them, because the array claims to be how the diagram is drawn.  ``timelines`` earns its
 place not by being useful -- a dashed line along a lane is the only use I can name for it -- but by
 being a pass; leaving it out would make ``layers`` a curated list of good ideas rather than a
 description, and the reader could no longer trust the order.
@@ -321,8 +321,8 @@ What the locator holds
    ``none`` for a point that carries none, which is every kind but a ``sync``.  It is drawn over the
    mark's own fill, so a drawing that restates both puts this one second.
 
-   The diagram draws that dot from exactly this, the same way it draws the ring from ``mark-args``.  So
-   an overlay that recolors an end of an exchange has both halves of it to hand:
+   The diagram draws that dot from exactly this, the same way it draws the ring from ``mark-args``.
+   So an overlay that recolors an end of an exchange has both halves of it to hand:
 
    .. code:: typst
 
@@ -341,9 +341,9 @@ What the locator holds
    carries no lane and no displacement -- it is the moment, and nothing about where on the page that
    moment was drawn.
 
-   ``mark`` and ``column`` ask the same question and answer in different kinds, and that is the whole
-   distinction.  You want the column whenever what you are drawing crosses lanes, because a coordinate
-   is already on a lane.  A column is a time, so it goes straight into ``point``:
+   ``mark`` and ``column`` ask the same question and answer in different kinds, and that is the
+   whole distinction.  You want the column whenever what you are drawing crosses lanes, because a
+   coordinate is already on a lane.  A column is a time, so it goes straight into ``point``:
 
    .. code:: typst
 
@@ -360,10 +360,10 @@ What the locator holds
         },
       )
 
-   ``mark("C", "c-reads")`` cannot start that rectangle: it sits on C's lane, not on the first one.  So
-   the two compose -- ``column`` gets the moment, ``point`` puts it on whichever lane you meant.
+   ``mark("C", "c-reads")`` cannot start that rectangle: it sits on C's lane, not on the first one.
+   So the two compose -- ``column`` gets the moment, ``point`` puts it on whichever lane you meant.
 
-   ``column`` is also what to reach for when you want to *reason* rather than draw.  \ ``column("A",
+   ``column`` is also what to reach for when you want to *reason* rather than draw.  ``column("A",
    "x") == column("B", "y")`` is "the solver found nothing ordering these two", which is a real
    question to ask of a Lamport diagram.
 
@@ -381,11 +381,11 @@ What the locator holds
 
    Return the `coordinate`:term: of a `time`:term: on a `lane`:term:.  Both arguments are those
    kinds: a time is a position along the axis the timelines run on, whole where it falls on a column
-   and fractional between two, and a lane is a position across the replicas, or the id of the replica
-   on one.
+   and fractional between two, and a lane is a position across the replicas, or the id of the
+   replica on one.
 
-   It is the entry that turns a time and a lane into a position on the page, which is what makes it the
-   one to write a drawing in terms of -- see `Staying orientation-independent`_ below.
+   It is the entry that turns a time and a lane into a position on the page, which is what makes it
+   the one to write a drawing in terms of -- see `Staying orientation-independent`_ below.
 
 The rectangles
 ~~~~~~~~~~~~~~
@@ -407,8 +407,8 @@ hand:
    )
 
 ``pad`` grows a rectangle on every side, in canvas centimeters.  One number pads all four the same;
-a pair pads in the diagram's own axes -- how far along the timelines, how far across them -- which is
-what keeps a padded box the same box when the diagram is turned on its side:
+a pair pads in the diagram's own axes -- how far along the timelines, how far across them -- which
+is what keeps a padded box the same box when the diagram is turned on its side:
 
 .. code:: typst
 
@@ -423,33 +423,34 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: lane-rect(lane, pad: 0)
 
-   Return the rectangle round the whole strip a lane occupies: from where its line leads in to past the
-   arrowhead, and as thick across as the band the lane erases behind itself.  It holds every mark on
-   that lane and no label off it, and it stops short of the replica name, which has ``names-rect`` of
-   its own.
+   Return the rectangle round the whole strip a lane occupies: from where its line leads in to past
+   the arrowhead, and as thick across as the band the lane erases behind itself.  It holds every
+   mark on that lane and no label off it, and it stops short of the replica name, which has
+   ``names-rect`` of its own.
 
 .. typst:locator:: gap-rect(replica, index, pad: 0)
 
-   Return the rectangle round exactly the dotted span of one ``gap``, as thick across as its lane.  A
-   ``gap`` carries no id, so name it by its index on the lane -- a negative one counting back from the
-   end.  Naming a point that is not a ``gap`` fails compilation, saying which kind it found there.
+   Return the rectangle round exactly the dotted span of one ``gap``, as thick across as its lane.
+   A ``gap`` carries no id, so name it by its index on the lane -- a negative one counting back from
+   the end.  Naming a point that is not a ``gap`` fails compilation, saying which kind it found
+   there.
 
 .. typst:locator:: names-rect(pad: 0)
 
    Return the rectangle round the strip the replica names are set in: the column the diagram keeps
-   clear before the lanes begin.  Given a replica -- ``names-rect("A")`` -- it is that one name's own box
-   instead.
+   clear before the lanes begin.  Given a replica -- ``names-rect("A")`` -- it is that one name's
+   own box instead.
 
 .. typst:locator:: arrow-rect(name, pad: 0)
 
-   Return the rectangle round a message or a ``sync``, by the name that pairs its two ends: the shaft
-   together with both the marks it runs between, so a box drawn round an exchange reads as round the
-   exchange rather than round the gap in the middle of it.
+   Return the rectangle round a message or a ``sync``, by the name that pairs its two ends: the
+   shaft together with both the marks it runs between, so a box drawn round an exchange reads as
+   round the exchange rather than round the gap in the middle of it.
 
 .. typst:locator:: arrow-mid(name)
 
-   Return the coordinate of the middle of that arrow's shaft -- where the diagram sets an arrow's own
-   label, before stepping it off the shaft.  A note hung here hangs where a label would have.
+   Return the coordinate of the middle of that arrow's shaft -- where the diagram sets an arrow's
+   own label, before stepping it off the shaft.  A note hung here hangs where a label would have.
 
 .. typst:locator:: color-of(replica)
 
@@ -462,9 +463,9 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
    Two times: the one each lane's line starts at, and the one it ends at.  The first is slightly
    negative, because a lane leads in a little before column ``0``; the second is past ``ncols - 1``,
-   because the line runs on beyond the last mark to carry its arrowhead.  Neither is a column, which is
-   what the distinction above is for.  Every lane is drawn over the same stretch, so there is one pair
-   for the whole diagram and no replica to ask about.
+   because the line runs on beyond the last mark to carry its arrowhead.  Neither is a column, which
+   is what the distinction above is for.  Every lane is drawn over the same stretch, so there is one
+   pair for the whole diagram and no replica to ask about.
 
 .. typst:locator:: replicas
 
@@ -477,31 +478,34 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: orientation
 
-   Which way this diagram runs, as its canonical name: ``rightwards``, ``leftwards``, ``downwards`` or
-   ``upwards``.  The two shorthands resolve to the direction they stand for, so a drawing that tests
-   this never has to test for ``horizontal`` or ``vertical`` as well.
+   Which way this diagram runs, as its canonical name: `rightwards`:value:, `leftwards`:value:,
+   `downwards`:value: or `upwards`:value:.  The two shorthands resolve to the direction they stand
+   for, so a drawing that tests this never has to test for `horizontal`:value: or `vertical`:value:
+   as well.
 
 .. typst:locator:: draw
 
-   The CeTZ module the diagram draws with -- the same one the package re-exports, for a body that would
-   rather unpack it than import it: ``let (draw, mark, ..) = d``, and then ``draw.circle(..)``.
+   The CeTZ module the diagram draws with -- the same one the package re-exports, for a body that
+   would rather unpack it than import it: ``let (draw, mark, ..) = d``, and then
+   ``draw.circle(..)``.
 
 .. typst:locator:: col-gap
 .. typst:locator:: row-gap
 .. typst:locator:: dot
 
-   The diagram's own measurements, in canvas centimeters: one column of time, one lane, and the radius
-   of an event's dot.
+   The diagram's own measurements, in canvas centimeters: one column of time, one lane, and the
+   radius of an event's dot.
 
-   They are here so a drawing can speak the diagram's own language.  A brace half a column clear of the
-   last mark stays half a column clear when you retune ``col-gap``; one written as ``+1.0`` does not.
+   They are here so a drawing can speak the diagram's own language.  A brace half a column clear of
+   the last mark stays half a column clear when you retune ``col-gap``; one written as ``+1.0`` does
+   not.
 
 Staying orientation-independent
 -------------------------------
 
-``point(time, lane)`` is stated in the diagram's own axes -- logical time along the lanes, and lanes
-across it -- so a drawing written in terms of it survives a flip from ``horizontal`` to ``vertical``.
-One written against raw ``(x, y)`` arithmetic does not:
+`point(time, lane) <point>`:locator: is stated in the diagram's own axes -- logical time along the
+lanes, and lanes across it -- so a drawing written in terms of it survives a flip from
+`horizontal`:value: to `vertical`:value:.  One written against raw ``(x, y)`` arithmetic does not:
 
 .. code:: typst
 
@@ -513,8 +517,8 @@ Fractional lanes are what make this work for nudges too.  "Just off the lane, to
 is ``point(c, 0.15)`` whichever way the diagram runs, where a page-space ``(0, -0.3)`` would point
 the wrong way the moment it turned.
 
-``span`` stays in times for the same reason, and it is what lets a drawing run the full length of a
-lane without knowing where on the page that lane falls:
+`span`:locator: stays in `times <time>`:term: for the same reason, and it is what lets a drawing run
+the full length of a lane without knowing where on the page that lane falls:
 
 .. code:: typst
 
@@ -528,8 +532,8 @@ lane without knowing where on the page that lane falls:
 
 That line lies along the lane, so the layer decides whether it shows at all: at ``backdrops`` the
 lane's own stroke would cover it, at ``timelines`` it is drawn over that stroke instead.  To sit
-*beside* the lane rather than on it, feed the same span to a fractional lane -- ``point(s, 1.12)`` to
-``point(e, 1.12)`` -- which is the pairing coordinates would not have allowed.
+*beside* the lane rather than on it, feed the same span to a fractional lane -- ``point(s, 1.12)``
+to ``point(e, 1.12)`` -- which is the pairing coordinates would not have allowed.
 
 Errors
 ------
