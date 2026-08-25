@@ -1,9 +1,10 @@
 Reference
 =========
 
-These pages describe the package as it stands on `main <https://github.com/mvaled/lamportian-dramatis>`__.  A Typst import names an exact version, so what
-a document sees is whatever it asked for -- the `changelog <changelog>`:doc: is what says which
-release each of these landed in, and what is still waiting.
+These pages describe the package as it stands on `main
+<https://github.com/lamportian-dramatis/lamportian-dramatis>`__.  A Typst import names an exact
+version, so what a document sees is whatever it asked for -- the `changelog <changelog>`:doc: is
+what says which release each of these landed in, and what is still waiting.
 
 .. typst:function:: lamport-diagram(caption: none, replicas: (), events: (:), orientation: horizontal, overlays: none, col-gap: none, row-gap: none, text-size: 0.62em, dot: 0.095, message-stroke: 0.9pt + luma(110))
 

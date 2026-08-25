@@ -73,7 +73,7 @@ Elsewhere
 ---------
 
 - `Package on Typst Universe <https://typst.app/universe/package/lamportian-dramatis/>`__
-- `Source on GitHub <https://github.com/mvaled/lamportian-dramatis>`__
+- `Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis>`__
 
 .. toctree::
    :hidden:
@@ -83,3 +83,4 @@ Elsewhere
    Overlays <overlays>
    gallery
    changelog
+   genindex

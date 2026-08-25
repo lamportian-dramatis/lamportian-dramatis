@@ -379,13 +379,11 @@ What the locator holds
 
 .. typst:locator:: point(time, lane)
 
-   Return the `coordinate`:term: of a `time`:term: on a `lane`:term:.  Both arguments are those
-   kinds: a time is a position along the axis the timelines run on, whole where it falls on a column
-   and fractional between two, and a lane is a position across the replicas, or the id of the
-   replica on one.
+   Return the `coordinate`:term: of a `time`:term: on a `lane`:term:.
 
    It is the entry that turns a time and a lane into a position on the page, which is what makes it
-   the one to write a drawing in terms of -- see `Staying orientation-independent`_ below.
+   the one to write a drawing in terms of -- see `below <orientation-independent>`:ref:.
+
 
 The rectangles
 ~~~~~~~~~~~~~~
@@ -499,6 +497,8 @@ the middle of.  None of it is re-derived, so none of it can drift.
    They are here so a drawing can speak the diagram's own language.  A brace half a column clear of
    the last mark stays half a column clear when you retune ``col-gap``; one written as ``+1.0`` does
    not.
+
+.. _orientation-independent:
 
 Staying orientation-independent
 -------------------------------
