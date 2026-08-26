@@ -30,6 +30,8 @@ Added
 
 - ``halo`` on `send`:func:, `recv`:func: and `sync`:func:.
 
+- ``messages`` on `lamport-diagram`:func:, holding `message`:func: items.
+
 - ``label-displacement`` on `send`:func:, `recv`:func: and `sync`:func:, which slides the point's own
   label along the timeline.  It is the ``displacement`` of an `event`:func:; on these three
   ``displacement`` moves the mark.

@@ -6,7 +6,19 @@ These pages describe the package as it stands on `main
 version, so what a document sees is whatever it asked for -- the `changelog <changelog>`:doc: is
 what says which release each of these landed in, and what is still waiting.
 
-.. typst:function:: lamport-diagram(caption: none, replicas: (), events: (:), orientation: horizontal, overlays: none, col-gap: none, row-gap: none, text-size: 0.62em, dot: 0.095, message-stroke: 0.9pt + luma(110))
+.. typst:function:: lamport-diagram(\
+         caption: none, \
+         replicas: (), \
+         events: (:), \
+         messages: (), \
+         orientation: horizontal, \
+         overlays: none, \
+         col-gap: none, \
+         row-gap: none, \
+         text-size: 0.62em, \
+         dot: 0.095, \
+         message-stroke: 0.9pt + luma(110) \
+      )
 
    :param orientation: The direction and sense of logical time. Defaults to `horizontal`:value:.
 
@@ -22,8 +34,14 @@ what says which release each of these landed in, and what is still waiting.
       bare content or a bare string for a local event, or one of `event`:func:, `send`:func:,
       `recv`:func:, `sync`:func:, `idle`:func: and `gap`:func:.
 
+   :param messages: arbitrary arrows the diagram is to draw between two of its own points, as
+      `message`:func: items.
+
+      Every other arrow the diagram works out for itself, from the `send`:func:, `recv`:func: and
+      `sync`:func: points on the lanes.
+
    :param overlays: your own CeTZ, drawn into the diagram at a layer of your choosing.  See
-                    `Overlays <overlays>`:doc:.
+      `Overlays <overlays>`:doc:.
 
    The rest are the drawing's measurements.  Lengths without a unit are **canvas centimeters**: the
    canvas is laid out at ``length: 1cm``, so ``2.0`` is two centimeters before the document scales
@@ -261,6 +279,47 @@ what says which release each of these landed in, and what is still waiting.
           "Client B": (idle(1), [Edit], sync("second")[has both edits]),
         ),
       )
+
+.. typst:function:: message(from, to, ..args)
+
+   An arrow between two points the diagram already holds, and the note that goes beside it.  Both
+   ends go positionally, each a ``(replica, id-or-index)`` pair -- the way a point is named
+   everywhere else -- and the body is the note:
+
+   .. typst-code::
+      :only-lines: 2-6
+      :dedent:
+
+      #lamport-diagram(
+        messages: message(("server", "http-request"), ("node", -1), luma(150))[
+          server already\
+          committed its DB
+        ],
+      )
+
+   A `message`:func: is drawn and nothing more.  Both of its ends are points the diagram has
+   already placed, so it moves no column and says nothing about order.  It is for an arrow the
+   diagram has no other way to hold -- the reply a `sync`:func: stands for, say.
+
+   :param color: tints the arrow, its head and the note together.  Left alone they take the paint of
+      `lamport-diagram.message-stroke`:param:, which is what makes an arrow given here look like one
+      the diagram worked out for itself.  It may be given positionally.
+
+   :param position: which side of the middle of the arrow the note sits on: `above`:value:,
+      `below`:value:, `left`:value: or `right`:value:.  Left alone the note sits where the
+      orientation puts it -- after the middle on a horizontal diagram, under it on a vertical one --
+      and this is what moves a note off whatever it landed on.
+
+   :param stroke: replaces the arrow's stroke outright, for an arrow that is to read as an aside
+      rather than as one of the diagram's own.  A dashed or dotted one says *this arrow is a remark*
+      as plainly as anything can.
+
+   :param size: the note's text size, ``0.8em`` of the diagram's own by default, since a note
+      annotates a diagram rather than belonging to it.  ``none`` takes the size the diagram is drawn
+      at.
+
+   :param padding: how far the note keeps off the middle of the arrow, in canvas centimeters --
+      ``0.2`` by default -- or a length.
 
 .. typst:function:: idle(n)
 

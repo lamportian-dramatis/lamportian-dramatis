@@ -443,6 +443,82 @@
   )
 }
 
+/// An arrow between two points the diagram already holds, and the note that goes beside it.
+///
+/// `from` and `to` are `(replica, id-or-index)` pairs, the way a point is named everywhere else, and
+/// they go positionally.  The body is the note set at the middle of the arrow.  A color tints the
+/// arrow, its head and the note together; `stroke` replaces the stroke outright, for an arrow that is
+/// to read as an aside rather than as one of the diagram's own.  `size` is the note's text size,
+/// `0.8em` of the diagram's own by default, and `none` for the diagram's own size; `padding` is how
+/// far the note keeps off the point it is hung from, in canvas centimeters.
+///
+/// `position` forces the side of that middle the note sits on -- `above`, `below`, `left` or `right`.
+/// Left alone the note sits where the orientation puts it: after the middle on a horizontal diagram,
+/// under it on a vertical one.
+///
+/// A `message` is drawn and nothing more.  Both of its ends are points the diagram has already
+/// placed, so it moves no column and says nothing about order.  It is for an arrow the diagram has no
+/// other way to hold -- the reply a `sync` stands for, say.
+#let message(..args) = {
+  for key in args.named().keys() {
+    assert(
+      key in ("body", "color", "position", "stroke", "size", "padding"),
+      message: "lamport-diagram: message has no `" + key + "` parameter",
+    )
+  }
+  let ends = ()
+  let ink = args.named().at("color", default: auto)
+  let body = args.named().at("body", default: none)
+  for arg in args.pos() {
+    if type(arg) == array {
+      ends.push(arg)
+    } else if type(arg) == color {
+      ink = arg
+    } else {
+      body = arg
+    }
+  }
+  assert(
+    ends.len() == 2,
+    message: "lamport-diagram: message runs between two points, and each of them is a "
+      + "`(replica, id-or-index)` pair",
+  )
+  for end in ends {
+    assert(
+      end.len() == 2,
+      message: "lamport-diagram: a message end is a `(replica, id-or-index)` pair",
+    )
+  }
+  let position = args.named().at("position", default: auto)
+  assert(
+    position == auto or position in _sides,
+    message: "lamport-diagram: message `position` must be `above`, `below`, `left` or `right`",
+  )
+  // A note is set smaller than the diagram it annotates, and stands off the point it hangs from.
+  let size = args.named().at("size", default: 0.8em)
+  assert(
+    size == none or type(size) == length,
+    message: "lamport-diagram: message `size` must be a length, as in `size: 0.8em`, or `none` for "
+      + "the size the diagram is drawn at",
+  )
+  let padding = args.named().at("padding", default: 0.2)
+  assert(
+    type(padding) in (int, float, length),
+    message: "lamport-diagram: message `padding` is a number of canvas centimeters, or a length",
+  )
+  (
+    kind: "message",
+    from: ends.at(0),
+    to: ends.at(1),
+    body: body,
+    color: ink,
+    stroke: args.named().at("stroke", default: auto),
+    size: size,
+    padding: padding,
+    position: position,
+  )
+}
+
 /// How much of its column each named `gap` size spans, as a fraction of the column gap.  Even `large`
 /// stops short of the marks in the neighboring columns.
 #let _gap-spans = (small: 0.35, medium: 0.6, large: 0.85)
@@ -852,6 +928,10 @@
 /// default.  A side the orientation has no room for is dropped back to that default and otherwise
 /// ignored.
 ///
+/// `messages` holds the arrows the diagram is to draw between two of its own points, as `message`
+/// items -- one is enough on its own, without an array round it.  Every other arrow the diagram draws
+/// it works out for itself, from the `send`, `recv` and `sync` points on the lanes.
+///
 /// With a `caption` the result is a `figure`; without one it is the bare drawing.  `col-gap` is the
 /// spacing between two columns of logical time and `row-gap` that between two lanes, both in canvas
 /// centimeters, and they are the knobs for a diagram that reads too cramped or too sparse.
@@ -859,6 +939,7 @@
   caption: none,
   replicas: (),
   events: (:),
+  messages: (),
   orientation: horizontal,
   overlays: none,
   col-gap: none,
@@ -905,6 +986,15 @@
     assert(
       not (name in msgs),
       message: "lamport-diagram: '" + name + "' names both a sync and a send/recv message",
+    )
+  }
+  // A single `message` needs no array round it, the way a single overlay body does not.
+  let given-messages = if type(messages) == array { messages } else { (messages,) }
+  for m in given-messages {
+    assert(
+      type(m) == dictionary and m.at("kind", default: none) == "message",
+      message: "lamport-diagram: `messages` holds `message(..)` items, one for every arrow the "
+        + "diagram is to draw between two of its own points",
     )
   }
   _check-ids(lanes, rows)
@@ -961,6 +1051,23 @@
     "east"
   } else {
     "west"
+  }
+
+  // And which edge of a `message` note lands on the middle of its own arrow.  Left alone it is the
+  // edge that sets the note after the middle on a horizontal diagram and under it on a vertical one;
+  // a `position` names the side of that middle the note is to sit on, which is the opposite edge.
+  let message-anchor = position => if position == top {
+    "south"
+  } else if position == bottom {
+    "north"
+  } else if position == left {
+    "east"
+  } else if position == right {
+    "west"
+  } else if axes.along == "width" {
+    "west"
+  } else {
+    "north"
   }
 
   // Label sides for send/recv points default to the side the arrow does *not* occupy, so an arrow
@@ -1584,6 +1691,33 @@
           arrow-label(spec, x.label)
         }
       }
+      // What a given message is drawn from: the two ends it runs between, the spec the arrow is drawn
+      // with, and the ink that tints the arrow, its head and its note alike.  The arrow is drawn here
+      // and the note at the labels pass, so both halves take these from one place.
+      let message-parts = m => {
+        let ends = (index-of(..m.from), index-of(..m.to))
+        (
+          ends: ends,
+          spec: message-args-of(..ends),
+          ink: if m.color == auto { message-stroke.paint } else { m.color },
+        )
+      }
+
+      // The arrows the diagram was given, drawn the way it draws the ones it works out for itself:
+      // the same shaft, and the same clearance at either end.  A `stroke` of its own replaces the
+      // shaft's, which is what tells an aside from a message the diagram holds.
+      for m in given-messages {
+        let (spec, ink, ..) = message-parts(m)
+        line(
+          ..spec,
+          stroke: if m.stroke == auto {
+            (paint: ink, thickness: message-stroke.thickness)
+          } else {
+            m.stroke
+          },
+          mark: (..spec.at("mark"), fill: ink),
+        )
+      }
       layer-of(arrows)
 
       // The timeline of a lane, as the runs the line is drawn in: each `gap` column interrupts the
@@ -1699,6 +1833,20 @@
               text(fill: lane.color, label-of(it)),
             )
           }
+        }
+      }
+      // The note on each arrow the diagram was given, set at the middle of the shaft and hung off
+      // whichever edge `message-anchor` gives.  The arrow itself was drawn back at the arrows pass,
+      // so it passes behind every lane it crosses; the note is drawn here, so it reads over them.
+      for m in given-messages {
+        if m.body != none {
+          let (ends, ink, ..) = message-parts(m)
+          content(
+            shaft-mid(..ends),
+            anchor: message-anchor(m.position),
+            padding: m.padding,
+            text(fill: ink, if m.size == none { m.body } else { text(size: m.size, m.body) }),
+          )
         }
       }
       layer-of(labels)
