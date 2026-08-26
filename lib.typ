@@ -1135,27 +1135,56 @@
       )
     }
 
-    // The shaft of an arrow as it is drawn: the run between two marks, each end pulled back off its
-    // own mark by that mark's own clearance, so neither end is left orbiting a dot.  Clearance is
-    // per-endpoint on a message, the send mark being the smaller of the two; both ends of an exchange
-    // carry the same mark, hence one clearance for the two of them.
-    //
-    // The diagram draws from this and so does `arrow-mid`, which is the point of its being one
-    // function: an overlay hung off the middle of an arrow cannot drift from the arrow it hangs on.
-    let shaft-of = name => {
-      let ((ar, ai), (br, bi)) = ends-of(name)
-      let (leave, land) = if name in msgs {
-        (send-dot + 0.05, dot + 0.07)
+    // How far an arrow stops short of the mark at one of its ends, so that no end is left orbiting
+    // a dot.  A send is drawn smaller than the receive it feeds, so it keeps a clearance of its
+    // own; a `gap` and an `idle` draw no mark, so an arrow runs the whole way to one of those.
+    let clearance-of = (row-index, item-index) => {
+      let item = rows.at(row-index).at(item-index)
+      if item.kind == "send" {
+        send-dot + 0.05
+      } else if mark-radius(item) == none {
+        0
       } else {
-        (dot + 0.07, dot + 0.07)
+        dot + 0.07
       }
+    }
+
+    // The shaft of an arrow as it is drawn: the run between two points, with each end pulled back off
+    // its own mark by that mark's own clearance.  Both ends are the `(lane, index)` pairs the rest of
+    // the drawing addresses points by.
+    let shaft-between = ((ar, ai), (br, bi)) => {
       let (ax, ay) = at(ar, ai)
       let (bx, by) = at(br, bi)
       let (dx, dy) = (bx - ax, by - ay)
       let len = calc.sqrt(dx * dx + dy * dy)
+      let leave = clearance-of(ar, ai)
+      let land = clearance-of(br, bi)
       (
         (ax + dx / len * leave, ay + dy / len * leave),
         (bx - dx / len * land, by - dy / len * land),
+      )
+    }
+    // The middle of that shaft.  It is where the diagram sets an arrow's own label before stepping
+    // it off the shaft, so a note hung here hangs where a label would have.
+    let shaft-mid = (a, b) => {
+      let ((fx, fy), (tx, ty)) = shaft-between(a, b)
+      ((fx + tx) / 2, (fy + ty) / 2)
+    }
+
+    // Everything it takes to draw one message arrow, as arguments ready to spread into `line`: the
+    // shaft between the two points, the stroke the diagram draws a message with, and the head at the
+    // far end of it.  An exchange gives `heads` of its own, it carrying one head at each end.
+    //
+    // The diagram draws its arrows from this and so does `message-args`, which is the point of its
+    // being one function: an arrow an overlay adds is drawn the way the diagram draws its own, and
+    // stops as far short of both marks.
+    let message-args-of = (a, b, heads: (end: "curved-stealth")) => {
+      let (from, to) = shaft-between(a, b)
+      arguments(
+        from,
+        to,
+        stroke: message-stroke,
+        mark: (..heads, fill: message-stroke.paint, scale: 0.85),
       )
     }
 
@@ -1293,6 +1322,26 @@
       }
     }
 
+    // The two ends an overlay gives for an arrow of its own, resolved to the `(lane, index)` pairs
+    // the drawing addresses points by.  `message-args` and `message-mid` take the same two ends, so
+    // they check them in one place and complain in the same words.
+    let ends-given = (fn, from, to) => {
+      let ends = (from, to).map(end => {
+        assert(
+          type(end) == array and end.len() == 2,
+          message: "lamport-diagram: `" + fn + "` runs between two points, and each of them is a "
+            + "`(replica, id-or-index)` pair",
+        )
+        index-of(..end)
+      })
+      assert(
+        ends.at(0) != ends.at(1),
+        message: "lamport-diagram: `" + fn + "` runs between two points, so one point cannot be "
+          + "both ends of it",
+      )
+      ends
+    }
+
     let locator = (
       mark: (replica, key) => {
         let (ri, ii) = index-of(replica, key)
@@ -1320,6 +1369,14 @@
         let (ri, ii) = index-of(replica, key)
         pip-args-of(ri, ii)
       },
+      // Everything it takes to draw a message arrow between two points, as `arguments` ready to
+      // spread into `line`.  Each end is a `(replica, id-or-index)` pair, and the shaft stops as far
+      // short of the mark at each end as the diagram's own arrows do -- which is what keeps an added
+      // arrow from landing inside a mark, or inside the backdrop the mark carries.
+      message-args: (from, to) => message-args-of(..ends-given("message-args", from, to)),
+      // And the middle of the shaft that arrow would run along, for hanging a note on an arrow an
+      // overlay draws -- `arrow-mid` for one the diagram drew.
+      message-mid: (from, to) => shaft-mid(..ends-given("message-mid", from, to)),
       // The rectangles.  Each answers with the two corners `rect` takes, and each takes a `pad` that
       // grows it -- see `grown` above for what a pad is measured in.
       //
@@ -1403,10 +1460,7 @@
       },
       // The middle of that arrow's shaft, which is where the diagram sets an arrow's own label before
       // stepping it off the shaft -- so a note hung here hangs where a label would have.
-      arrow-mid: name => {
-        let ((fx, fy), (tx, ty)) = shaft-of(name)
-        ((fx + tx) / 2, (fy + ty) / 2)
-      },
+      arrow-mid: name => shaft-mid(..ends-of(name)),
       color-of: replica => {
         let ri = lane-of(replica)
         assert(
@@ -1446,52 +1500,39 @@
       // Arrows are laid down first, so every timeline, mark and label is drawn over them.  An arrow
       // that crosses a lane it has no endpoint on then reads as passing behind that lane's own marks,
       // instead of striking through them.
-      for (name, m) in msgs {
-        let (from, to) = shaft-of(name)
+      // An arrow's own label, set beside the middle of the shaft it belongs to.  A message and an
+      // exchange both put one here, and both take it off the very spec they are drawn from.
+      let arrow-label = (spec, label) => {
+        let (from, to) = spec.pos()
         let (dx, dy) = (to.at(0) - from.at(0), to.at(1) - from.at(1))
         let len = calc.sqrt(dx * dx + dy * dy)
-        line(
-          from,
-          to,
-          stroke: message-stroke,
-          mark: (end: "curved-stealth", fill: message-stroke.paint, scale: 0.85),
+        let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2)
+        // Offset perpendicular to travel so the label clears the shaft it belongs to.
+        content(
+          (mid.at(0) - dy / len * 0.26, mid.at(1) + dx / len * 0.26),
+          frame: "rect",
+          fill: white,
+          stroke: none,
+          padding: 0.03,
+          text(fill: message-stroke.paint, label),
         )
+      }
+
+      for (_, m) in msgs {
+        let spec = message-args-of(m.send, m.recv)
+        line(..spec)
         if m.label != none {
-          // Offset perpendicular to travel so the label clears the shaft it belongs to.
-          let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2)
-          content(
-            (mid.at(0) - dy / len * 0.26, mid.at(1) + dx / len * 0.26),
-            frame: "rect",
-            fill: white,
-            stroke: none,
-            padding: 0.03,
-            text(fill: message-stroke.paint, m.label),
-          )
+          arrow-label(spec, m.label)
         }
       }
 
       // A two-way exchange is one shaft with a head at each end: both replicas give and take in the
       // same round trip, so neither end of it is the sender.
-      for (name, x) in exchanges {
-        let (from, to) = shaft-of(name)
-        let (dx, dy) = (to.at(0) - from.at(0), to.at(1) - from.at(1))
-        let len = calc.sqrt(dx * dx + dy * dy)
-        line(
-          from,
-          to,
-          stroke: message-stroke,
-          mark: (start: "curved-stealth", end: "curved-stealth", fill: message-stroke.paint, scale: 0.85),
-        )
+      for (_, x) in exchanges {
+        let spec = message-args-of(..x.ends, heads: (start: "curved-stealth", end: "curved-stealth"))
+        line(..spec)
         if x.label != none {
-          let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2)
-          content(
-            (mid.at(0) - dy / len * 0.26, mid.at(1) + dx / len * 0.26),
-            frame: "rect",
-            fill: white,
-            stroke: none,
-            padding: 0.03,
-            text(fill: message-stroke.paint, x.label),
-          )
+          arrow-label(spec, x.label)
         }
       }
       layer-of(arrows)

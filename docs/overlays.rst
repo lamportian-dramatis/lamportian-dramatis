@@ -333,6 +333,54 @@ What the locator holds
         )
       )
 
+.. typst:locator:: message-args(from, to)
+
+   Return everything it takes to draw a message arrow between two points -- the shaft, the stroke
+   and the head -- as ``arguments`` ready to spread into ``line``.  Each end is a
+   ``(replica, id-or-index)`` pair, the way a point is named everywhere else:
+
+   .. typst-code::
+      :only-lines: 6-7
+      :dedent:
+
+      #lamport-diagram(
+        overlays: (
+          arrows: d => {
+            import draw: *
+            let (message-args, ..) = d
+            // The reply a sync hides, drawn as the message it is.
+            line(..message-args(("server", "http-request"), ("node", -1)))
+          },
+        )
+      )
+
+   The shaft stops short of the mark at each end, by as much as the diagram's own arrows stop short
+   of theirs.  That is the reason to reach for this instead of running a ``line`` between two
+   ``mark`` coordinates: an arrow drawn to the middle of a mark reaches into the mark and into the
+   backdrop the mark carries, so it reads as striking the dot rather than as arriving at it.
+
+   The diagram draws its own messages from exactly this, and a ``sync`` from the same thing with a
+   head at each end.  Spread it and override what you want changed, the way you would ``mark-args``.
+   ``mark`` is one dictionary, though, so a head of your own replaces the fill and the scale too.
+   Spread what the spec already holds to keep those -- ``spec.at("mark")``, an ``arguments`` being
+   read with ``at`` and never with brackets:
+
+   .. typst-code::
+      :only-lines: 2-3
+      :dedent:
+
+      #lamport-diagram(overlays: d => {
+         let spec = message-args(("server", "http-request"), ("node", -1))
+         line(..spec, mark: (..spec.at("mark"), end: "triangle"))
+      })
+
+.. typst:locator:: message-mid(from, to)
+
+   Return the `coordinate`:term: of the middle of that same shaft, from the same two ends.  It is to
+   an arrow an overlay draws what `arrow-mid(name) <arrow-mid>`:locator: is to one the diagram drew:
+   the place an arrow's own label goes before it is stepped off the shaft, and so the place to hang a
+   note.
+
 .. typst:locator:: column(replica, id-or-index)
 
    Return the column the solver put that point in: a whole number, ``0`` up to ``ncols - 1``.  It
@@ -608,6 +656,9 @@ Errors
 
 - ``names-rect`` given a point that carries no label fails compilation, and so does a third
   positional argument.
+
+- ``message-args`` given an end that is not a ``(replica, id-or-index)`` pair fails compilation, and
+  so does one point given as both ends.
 
 - A ``pad`` that is neither a number nor a pair of them fails compilation.
 

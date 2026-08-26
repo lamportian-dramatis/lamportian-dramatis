@@ -21,6 +21,8 @@ Added
   - `arrow-mid(name) <arrow-mid>`:locator:
   - `gap-rect(replica, index) <gap-rect>`:locator:
   - `lane-rect(lane) <lane-rect>`:locator:
+  - `message-args(from, to) <message-args>`:locator:
+  - `message-mid(from, to) <message-mid>`:locator:
   - `names-rect`:locator:
   - `pip-args(replica, id-or-index) <pip-args>`:locator:
   - `time(replica, id-or-index) <time>`:locator:
