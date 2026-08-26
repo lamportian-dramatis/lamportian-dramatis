@@ -33,6 +33,9 @@ Changed
 - Either end of a `sync`:func: is drawn with a dot inside its ring.  Previously, a `recv`:func: and
   a `sync`:func: had the same mark.
 
+- Every arrowhead is curved: a message, both ends of a `sync`:func:, and the head each timeline ends
+  with.
+
 .. _020--2026-08-23:
 
 0.2.0 -- 2026-08-23

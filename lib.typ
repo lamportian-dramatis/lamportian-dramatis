@@ -1454,7 +1454,7 @@
           from,
           to,
           stroke: message-stroke,
-          mark: (end: "stealth", fill: message-stroke.paint, scale: 0.85),
+          mark: (end: "curved-stealth", fill: message-stroke.paint, scale: 0.85),
         )
         if m.label != none {
           // Offset perpendicular to travel so the label clears the shaft it belongs to.
@@ -1480,7 +1480,7 @@
           from,
           to,
           stroke: message-stroke,
-          mark: (start: "stealth", end: "stealth", fill: message-stroke.paint, scale: 0.85),
+          mark: (start: "curved-stealth", end: "curved-stealth", fill: message-stroke.paint, scale: 0.85),
         )
         if x.label != none {
           let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2)
@@ -1560,7 +1560,7 @@
             point(to, ri),
             stroke: if is-elided { elided } else { solid },
             mark: if ii == runs.len() - 1 {
-              (end: "stealth", fill: lane.color, scale: 0.9)
+              (end: "curved-stealth", fill: lane.color, scale: 0.9)
             },
           )
         }
