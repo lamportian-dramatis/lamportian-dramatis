@@ -194,21 +194,32 @@ what says which release each of these landed in, and what is still waiting.
    ``send`` and one ``recv`` must exist for each name.
 
    An optional label for the point goes positionally -- ``send("push")[pushed]``, ``recv("pull")[now
-   duplicated]`` -- or as ``body``, with ``size`` setting its text size and ``at`` overriding the
-   side it sits on.
+   duplicated]`` -- or as ``body``, with ``size`` setting its text size, ``label-position``
+   overriding the side it sits on, and ``label-displacement`` sliding it along the timeline.  That
+   last one is the ``displacement`` of an `event`:func:, under a name that says which of the two it
+   moves: here ``displacement`` moves the mark, and ``label-displacement`` only the label.
 
-   Both take ``displacement``, which nudges the point off the column it is solved into, in either
-   direction.  A ratio is taken against the column gap.  Only the defaults differ:
+   :param label-position: Overrides the position of the label.  But default, the label is placed in
+      the opposite side of the arrow.
 
-   - on a ``recv`` it is ``1cm`` -- how far right of its ``send`` the point lands whenever nothing on
-     its own replica pushes it further, and enough to lean the arrow forward.  ``recv(...,
-     displacement: none)`` leaves it on its column, drawing a vertical arrow when the receiving
-     replica has nothing else competing for that column.
+   :param displacement: Nudges the point off the column it is solved into, in either direction.  A
+      ratio is taken against the column gap.  Only the defaults differ:
 
-   - on a ``send`` it is ``none`` -- a send sits on its own column unless you say otherwise, since it
-     is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever
-     a vertical line would otherwise run through, or to separate two sends the solver put in one
-     column.
+      - on a ``recv`` it is ``1cm`` -- how far right of its ``send`` the point lands whenever
+        nothing on its own replica pushes it further, and enough to lean the arrow forward.
+        ``recv(..., displacement: none)`` leaves it on its column, drawing a vertical arrow when the
+        receiving replica has nothing else competing for that column.
+
+      - on a ``send`` it is ``none`` -- a send sits on its own column unless you say otherwise,
+        since it is the receive that leans a message forward.  Reach for it to tilt an arrow away
+        from whatever a vertical line would otherwise run through, or to separate two sends the
+        solver put in one column.
+
+      The nudge is a drawing offset the column solver knows nothing about.  It reserves no room, so
+      it never moves what follows on its lane, and a negative one wide enough to put a point
+      visually behind its own counterpart does *not* trip the causal-cycle check.  It is equally outside what
+      the drawing sizes itself to on that side, so a displacement large enough to push a bodiless
+      mark left of where its lane starts will leave it overhanging the replica name.
 
    Both also take ``halo`` and ``fill``, the label's backdrop, which mean exactly what they mean on
    an `event`:func:.
@@ -216,15 +227,6 @@ what says which release each of these landed in, and what is still waiting.
    ``send`` also takes:
 
    :param label: labels the arrow itself rather than the point, and keeps its own styling.
-
-   :param delay: the minimum number of columns the matching ``recv`` is pushed forward.  ``0`` (the
-                 default) leaves the two in one column, where the receive's own ``displacement`` is
-                 what leans the arrow forward; ``1`` or more buys the message a whole column of
-                 flight.  The nudge is a drawing offset the column solver knows nothing about, so a
-                 negative one wide enough to put a point visually behind its own counterpart does
-                 *not* trip the causal-cycle check.  It is equally outside what the drawing sizes
-                 itself to, so a displacement large enough to push a bodiless mark left of where its
-                 lane starts will leave it overhanging the replica name.
 
 .. typst:function:: sync(name, ..args)
 
@@ -242,8 +244,9 @@ what says which release each of these landed in, and what is still waiting.
    message.
 
    An optional label for the point goes positionally -- ``sync("push")[rolled back]`` -- or as
-   ``body``, with ``size`` setting its text size, ``at`` forcing the side the label sits on, and
-   ``halo`` and ``fill`` setting its backdrop as they do on an `event`:func:.  ``label`` instead
+   ``body``, with ``size`` setting its text size, ``label-position`` forcing the side the label sits
+   on, ``label-displacement`` sliding it along the timeline, and ``halo`` and ``fill`` setting its
+   backdrop as they do on an `event`:func:.  ``label`` instead
    labels the arrow itself; either end may carry it, and the first one given wins.  ``displacement``
    nudges this end off the shared column, which tilts the arrow away from whatever the vertical line
    would otherwise run through; it is a drawing offset and says nothing about the order.

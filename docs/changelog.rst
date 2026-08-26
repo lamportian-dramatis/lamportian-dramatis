@@ -30,14 +30,28 @@ Added
 
 - ``halo`` on `send`:func:, `recv`:func: and `sync`:func:.
 
+- ``label-displacement`` on `send`:func:, `recv`:func: and `sync`:func:, which slides the point's own
+  label along the timeline.  It is the ``displacement`` of an `event`:func:; on these three
+  ``displacement`` moves the mark.
+
+
 Changed
 ~~~~~~~
 
 - Either end of a `sync`:func: is drawn with a dot inside its ring.  Previously, a `recv`:func: and
   a `sync`:func: had the same mark.
 
+- ``at`` is now ``label-position`` on `send`:func:, `recv`:func: and `sync`:func:, so that it
+  matches the "position" naming in other functions and the documentation.
+
 - Every arrowhead is curved: a message, both ends of a `sync`:func:, and the head each timeline ends
   with.
+
+Removed
+~~~~~~~
+
+- ``delay`` on `send`:func:.  A message no longer pushes its receive into a later column; reserve
+  that column on the receiving lane with `idle(1) <idle>`:func: instead.
 
 .. _020--2026-08-23:
 

@@ -163,6 +163,19 @@
 /// centred, a ratio of the label's own width, or an exact length.
 #let _is-displacement(value) = value == auto or value == 0 or type(value) in (length, ratio)
 
+/// Reads the optional `label-displacement` of a `send`, `recv` or `sync`: how far that point's own
+/// label slides along the timeline, out of being centred on its mark.  It is the `displacement` of an
+/// `event` under the name that says which of the two it moves, these three points spending
+/// `displacement` on the mark itself.
+#let _point-label-displacement(args, fn) = {
+  let value = args.named().at("label-displacement", default: auto)
+  assert(
+    _is-displacement(value),
+    message: "lamport-diagram: " + fn + " `label-displacement` must be a ratio, a length or `0`",
+  )
+  value
+}
+
 /// A local event on a replica's timeline.
 ///
 /// Its body (content or plain string ) is the label shown in the diagram.
@@ -267,7 +280,7 @@
     kind: "event",
     id: id,
     body: body,
-    at: position,
+    label-position: position,
     size: _point-size(args),
     width: width,
     halo: _point-halo(args),
@@ -293,10 +306,8 @@
 
 /// The point where the message `name` leaves this replica.  An optional label for the point goes
 /// positionally -- `send("push")[pushed]` -- or as `body`, with `size` setting its text size; `label`
-/// instead labels the arrow itself, and keeps its own styling.  `delay` is the minimum number of
-/// columns the matching `recv` is pushed forward: `0` (the default) leaves the two in one column,
-/// where the receive's own `displacement` is what leans the arrow forward, and `1` or more buys the
-/// message a whole column of flight.
+/// instead labels the arrow itself, and keeps its own styling.  `label-position` forces the side the
+/// point's label sits on, in place of the side the drawing picks to clear the message arrow.
 ///
 /// `displacement` nudges the point off the column it is solved into, exactly as it does on a `recv`,
 /// except that it defaults to `none` -- a send sits on its own column unless you say otherwise, since
@@ -318,14 +329,23 @@
     body: _point-body(
       args,
       "send",
-      ("body", "size", "label", "at", "delay", "displacement", "halo", "fill"),
+      (
+        "body",
+        "size",
+        "label",
+        "label-position",
+        "label-displacement",
+        "displacement",
+        "halo",
+        "fill",
+      ),
     ),
     size: _point-size(args),
     halo: _point-halo(args),
     fill: _point-fill(args),
     label: args.named().at("label", default: none),
-    at: args.named().at("at", default: auto),
-    delay: args.named().at("delay", default: 0),
+    label-position: args.named().at("label-position", default: auto),
+    label-displacement: _point-label-displacement(args, "send"),
     displacement: displacement,
   )
 }
@@ -354,11 +374,16 @@
   (
     kind: "recv",
     name: name,
-    body: _point-body(args, "recv", ("body", "size", "at", "displacement", "halo", "fill")),
+    body: _point-body(
+      args,
+      "recv",
+      ("body", "size", "label-position", "label-displacement", "displacement", "halo", "fill"),
+    ),
     size: _point-size(args),
     halo: _point-halo(args),
     fill: _point-fill(args),
-    at: args.named().at("at", default: auto),
+    label-position: args.named().at("label-position", default: auto),
+    label-displacement: _point-label-displacement(args, "recv"),
     displacement: displacement,
   )
 }
@@ -377,8 +402,8 @@
 /// same as holding the same state, so each end takes its own label.
 ///
 /// An optional label for the point goes positionally -- `sync("push")[rolled back]` -- or as `body`,
-/// with `size` setting its text size; `label` instead labels the arrow itself, and `at` forces the
-/// side the point's label sits on.  `displacement` nudges this end off the shared column, which tilts
+/// with `size` setting its text size; `label` instead labels the arrow itself, and `label-position`
+/// forces the side the point's label sits on.  `displacement` nudges this end off the shared column, which tilts
 /// the arrow away from whatever a straight run across the lanes would otherwise cross; it is a
 /// drawing offset
 /// and says nothing about the order.
@@ -394,12 +419,26 @@
   (
     kind: "sync",
     name: name,
-    body: _point-body(args, "sync", ("body", "size", "at", "displacement", "label", "halo", "fill")),
+    body: _point-body(
+      args,
+      "sync",
+      (
+        "body",
+        "size",
+        "label-position",
+        "label-displacement",
+        "displacement",
+        "label",
+        "halo",
+        "fill",
+      ),
+    ),
     size: _point-size(args),
     halo: _point-halo(args),
     fill: _point-fill(args),
     label: args.named().at("label", default: none),
-    at: args.named().at("at", default: auto),
+    label-position: args.named().at("label-position", default: auto),
+    label-displacement: _point-label-displacement(args, "sync"),
     displacement: displacement,
   )
 }
@@ -428,7 +467,7 @@
     (type(size) == str and size in _gap-spans) or type(size) in (length, ratio),
     message: "lamport-diagram: gap size must be \"small\", \"medium\", \"large\", a length or a ratio",
   )
-  (kind: "gap", body: none, at: auto, span: size)
+  (kind: "gap", body: none, label-position: auto, span: size)
 }
 
 /// Spacing to convey idle time passing: `n` columns of ordinary timeline, with nothing drawn on them.
@@ -453,7 +492,7 @@
     type(n) == int and n >= 1,
     message: "lamport-diagram: idle takes a whole number of columns, at least 1",
   )
-  (kind: "idle", body: none, at: auto, advance: n)
+  (kind: "idle", body: none, label-position: auto, advance: n)
 }
 
 #let _item(it) = {
@@ -478,11 +517,10 @@
     // What an overlay addresses this point by.  A send, recv or sync is known by the message name
     // that pairs its two ends; an event has no such name, so it takes one of its own or none at all.
     id: d.at("id", default: d.at("name", default: none)),
-    at: d.at("at", default: auto),
+    label-position: d.at("label-position", default: auto),
     // How many columns this item takes before the next one on its lane may start.  Everything takes
     // one; `idle` is what takes more.
     advance: d.at("advance", default: 1),
-    delay: d.at("delay", default: 0),
     displacement: d.at("displacement", default: none),
     label-displacement: d.at("label-displacement", default: auto),
     span: d.at("span", default: "medium"),
@@ -501,13 +539,18 @@
 #let _resolve-defaults(row, lane, first-displacement) = {
   row.enumerate().map(((ii, it)) => {
     if it.kind != "event" {
-      (..it, label-displacement: 0%)
+      // A point that is not an event keeps the displacement it was given, and is centred on its own
+      // mark when it was given none.  A lane's defaults still reach events only.
+      (
+        ..it,
+        label-displacement: if it.label-displacement == auto { 0% } else { it.label-displacement },
+      )
     } else {
       let inherited = if ii == 0 { lane.first-displacement } else { lane.displacement }
       let fallback = if ii == 0 { first-displacement } else { 0% }
       (
         ..it,
-        at: if it.at == auto { lane.position } else { it.at },
+        label-position: if it.label-position == auto { lane.position } else { it.label-position },
         size: if it.size == none { lane.size } else { it.size },
         label-displacement: if it.label-displacement != auto {
           it.label-displacement
@@ -542,8 +585,8 @@
   }
   let out-rows = ()
   for row in rows {
-    out-rows.push(row.map(it => if it.at != auto and not legal.contains(it.at) {
-      (..it, at: auto)
+    out-rows.push(row.map(it => if it.label-position != auto and not legal.contains(it.label-position) {
+      (..it, label-position: auto)
     } else {
       it
     }))
@@ -667,7 +710,7 @@
   exchanges
 }
 
-/// Pairs every `send` with its `recv`, as `name => (send: (row, i), recv: (row, i), delay: int)`.
+/// Pairs every `send` with its `recv`, as `name => (send: (row, i), recv: (row, i), label: any)`.
 #let _messages(rows) = {
   let msgs = (:)
   for (ri, row) in rows.enumerate() {
@@ -677,7 +720,7 @@
           type(it.name) == str,
           message: "lamport-diagram: every send/recv needs a message name",
         )
-        let m = msgs.at(it.name, default: (send: none, recv: none, delay: 0, label: none))
+        let m = msgs.at(it.name, default: (send: none, recv: none, label: none))
         assert(
           m.at(it.kind) == none,
           message: "lamport-diagram: message '" + it.name + "' has more than one " + it.kind,
@@ -685,7 +728,7 @@
         msgs.insert(
           it.name,
           if it.kind == "send" {
-            (..m, send: (ri, ii), delay: it.delay, label: it.label)
+            (..m, send: (ri, ii), label: it.label)
           } else {
             (..m, recv: (ri, ii))
           },
@@ -705,8 +748,8 @@
 /// graph to a fixpoint, which is bounded by the event count unless the message edges close a cycle.
 ///
 /// An exchange constrains its two ends in both directions at once, so the relaxation lifts the
-/// earlier end to the later one and then stops.  A `send`/`recv` pair with a `delay` in both
-/// directions is a real cycle, and that still fails.
+/// earlier end to the later one and then stops.  Two messages that each wait on the other are a real
+/// cycle, and that still fails.
 #let _columns(rows, msgs, exchanges) = {
   let cols = rows.map(row => row.map(_ => 0))
   let bound = rows.map(row => row.len()).sum(default: 0) + 1
@@ -727,8 +770,8 @@
     for (_, m) in msgs {
       let (sr, si) = m.send
       let (rr, rii) = m.recv
-      if cols.at(rr).at(rii) < cols.at(sr).at(si) + m.delay {
-        cols.at(rr).at(rii) = cols.at(sr).at(si) + m.delay
+      if cols.at(rr).at(rii) < cols.at(sr).at(si) {
+        cols.at(rr).at(rii) = cols.at(sr).at(si)
         changed = true
       }
     }
@@ -936,8 +979,8 @@
     } else {
       none
     }
-    if it.at != auto {
-      it.at
+    if it.label-position != auto {
+      it.label-position
     } else if other == none {
       axes.default-side
     } else if other > ri {
