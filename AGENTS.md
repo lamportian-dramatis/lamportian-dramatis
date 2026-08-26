@@ -9,3 +9,5 @@ Write all comments, docstrings, and documentation in ASD-STE100 Simplified Techn
 - Do not make a noun cluster of more than three words.
 - Do not invent acronyms or abbreviations. Use the exact name from the code or the domain. Use an acronym only when it already exists in the codebase or is an established, widely known term.
 - Use American spelling, but avoid American idioms.
+
+When committing make sure to commit both the main repository and the `site` submodule.  Follow the general instructions about commits.
