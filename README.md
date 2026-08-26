@@ -15,12 +15,21 @@ That is [`gallery/legend.typ`](gallery/legend.typ), a complete standalone docume
 #set text(size: 10pt)
 
 #lamport-diagram(
-  replicas: (replica("R1"), replica("R2", below), "D"),
+  replicas: (replica("R1", label:"replica 1"), replica("R2", below), "D"),
   events: (
-    "R1": (sync("t0", displacement: 0.5cm)[sync], "event", gap, send("t1")[send]),
-    "R2": (sync("t0", displacement: 0.5cm), recv("t1")[receive], "A"),
+    "R1": (
+      sync("t0", displacement: 0.5cm)[sync],
+      "event",
+      gap,
+      send("t1")[send],
+    ),
+    "R2": (
+      sync("t0", displacement: 0.5cm),
+      recv("t1")[receive],
+      "A",
+    ),
     "D": (),
-  ),
+    overlays: (..),
 )
 ```
 
