@@ -1,4 +1,4 @@
-#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap
+#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap, event
 
 #set page(width: 10cm, height: auto, margin: 0.4cm)
 #set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))
@@ -7,7 +7,10 @@
 #let diagram = (
   replicas: ("node", "server"),
   events: (
-    "node": (send("http-request")[HTTP POST], [Local DB update]),
+    "node": (
+      send("http-request", label-displacement: 20%)[HTTP POST],
+      event(displacement: 30%)[Local DB update]
+    ),
     "server": (
       recv("http-request", label-displacement: 30%)[
         HTTP atomic request\
