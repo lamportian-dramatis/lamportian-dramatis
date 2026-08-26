@@ -427,6 +427,27 @@ What the locator holds
    page.  That is what makes it the one to reach for when a drawing has to line something up with a
    mark *across* the lanes, which a coordinate cannot do.
 
+.. typst:locator:: lane(replica)
+
+   Return the `lane`:term: a replica is on: ``0`` for the first of `replicas <replica>`:func:, ``1``
+   for the next, and so on.  A number comes back unchanged, so a lane between two replicas is said
+   the same way as a lane on one -- ``(lane("A") + lane("B")) / 2`` is the lane halfway between them,
+   ready for ``point``:
+
+   .. typst-code::
+      :only-lines: 3-4
+      :dedent:
+
+      #lamport-diagram(overlays: d => {
+         let (s, e) = span
+         let between = (lane("A") + lane("B")) / 2
+         line(point(s, between), point(e, between), stroke: (paint: red, dash: "dashed"))
+      })
+
+   It is the mirror of ``time``: one answers a position along the timelines, the other a position
+   across them, and both are in the diagram's own axes.  Every entry that takes a lane runs it
+   through this, which is why an id and a number are interchangeable wherever one is asked for.
+
 .. typst:locator:: point(time, lane)
 
    Return the `coordinate`:term: of a `time`:term: on a `lane`:term:.
@@ -566,8 +587,9 @@ lane over the very stretch ``gap-rect`` answers with, and runs its arrows betwee
 
 .. typst:locator:: replicas
 
-   The replica ids, in order.  The id at index ``n`` is the replica on lane ``n``, which is how a
-   drawing turns an id into a lane when it needs to arrive at one by arithmetic.
+   The replica ids, in order.  The id at index ``n`` is the replica on lane ``n`` -- for turning one
+   id into a lane, reach for ``lane`` instead; this is for a drawing that walks every replica, or
+   asks how many there are.
 
 .. typst:locator:: ncols
 

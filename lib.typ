@@ -1360,6 +1360,12 @@
         let (ri, ii) = index-of(replica, key)
         t-at(ri, ii) / col-gap
       },
+      // Which lane a replica is on, and the mirror of `time`: one answers a position along the
+      // timelines, the other a position across them.  A number comes back as it went in, so a lane
+      // between two replicas -- `(lane("A") + lane("B")) / 2` -- is said the same way as a lane on
+      // one.  It is the resolver every entry here already runs a lane through, handed out so that a
+      // drawing can reach a lane by arithmetic without counting `replicas` for itself.
+      lane: lane-of,
       point: (time, lane) => point(t-of(time), lane-of(lane)),
       mark-args: (replica, key) => {
         let (ri, ii) = index-of(replica, key)

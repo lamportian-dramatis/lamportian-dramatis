@@ -20,6 +20,7 @@ Added
 
   - `arrow-mid(name) <arrow-mid>`:locator:
   - `gap-rect(replica, index) <gap-rect>`:locator:
+  - `lane(replica) <lane>`:locator:
   - `lane-rect(lane) <lane-rect>`:locator:
   - `message-args(from, to) <message-args>`:locator:
   - `message-mid(from, to) <message-mid>`:locator:
