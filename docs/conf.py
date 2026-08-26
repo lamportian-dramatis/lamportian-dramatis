@@ -88,9 +88,9 @@ html_theme_options = {
         "font-stack": "Literata, Georgia, 'Times New Roman', serif",
         "font-stack--headings": "Fraunces, Georgia, serif",
         "font-stack--monospace": "Inconsolata, 'Roboto Mono', ui-monospace, monospace",
-        # Code sits a little under the prose it explains: 18px against the body's 20.8.  Furo sizes
-        # every listing and every inline snippet from this one variable, and `rem` pins it to the root
-        # rather than to whatever it happens to be nested in.
+        # Code sits a little under the prose it explains: 0.865 of whatever size the root holds.  Furo
+        # sizes every listing and every inline snippet from this one variable, and `rem` pins it to
+        # the root rather than to whatever it happens to be nested in.
         "code-font-size": "0.865rem",
     },
 }
