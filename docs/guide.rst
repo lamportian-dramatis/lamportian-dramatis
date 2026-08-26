@@ -9,7 +9,7 @@ Reading a diagram
          and the receive it feeds, an elided stretch of time, and a timeline of its own
 
 In following is table, each mark is accompany by some *intended* meaning; but authors might choose
-different semantics.
+different semantics [#sync-semantics]_.
 
 .. list-table::
    :header-rows: 1
@@ -35,10 +35,14 @@ Time flows in the direction of the arrows of the timeline.  A `recv`:func: event
 centimeter further in the direction of time, so every message arrow follows the direction of time
 without the diagram needing padding put in by hand.
 
-Normally, labels are centred w.r.t their own mark and sit on the orientation's default side --
-`above`:value: a horizontal timeline, `right`:value: of a vertical one --.  The exception is the
-lane's opening label on a *horizontal diagram*, which is nudged forward in time so it does sit next
-to the replica's name.
+Normally, labels are centred w.r.t their own mark and sit on the orientation's default position.
+There are two exceptions:
+
+- The lane's opening label on a *horizontal diagram*, which is nudged forward in time so it does sit
+  next to the replica's name.
+
+- The default position of `send`:func:, `sync`:func:, and `recv`:func: is computed to be on the
+  other side of the incoming/outgoing arrow.
 
 .. _columns-solver:
 
@@ -72,3 +76,19 @@ the reference resolves to it and it numbers alongside the document's other figur
    ) <fig-duplicated-delete>
 
    As @fig-duplicated-delete shows, ...
+
+
+
+----
+
+.. [#sync-semantics] As an example of semantics you might consider `sync`:func:.  This symbolism is
+   actually a convenience over a **whole synchronization protocol**.  The protocol should provides
+   the expected guarantees that both replicas will agree on the exchanged values.
+
+   In practice a ``sync`` might really look like
+
+   .. image:: gallery/sync-explained.png
+
+   We have implemented a replicated system, in which *syncs* can be retried so that failure in the
+   node after the server's HTTP handler committed, but before the node's DB commit happened can be
+   achieved by simply executing the same SYNC protocol.

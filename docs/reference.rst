@@ -129,6 +129,9 @@ what says which release each of these landed in, and what is still waiting.
    :param position: `above`:value: or `below`:value:, the side of the timeline this lane's event
       labels sit on -- `left`:value: or `right`: on a vertical diagram; see `orientation`:arg:.
 
+      .. important:: `send`:func:, `recv`:func:, and `sync`:func: ignore the position and place the
+         label on the *opposite* side of the arrow.  Their own ``label-position`` overrides that.
+
    :param size: the text size of this lane's event labels.
 
    :param displacement: how far this lane's event labels slide off their own dot.
@@ -140,9 +143,6 @@ what says which release each of these landed in, and what is still waiting.
       nothing to move out of.  ``label``, ``color`` and ``position`` may also be given positionally,
       in any order: they are told apart by type, so ``replica("A", below, red)`` and ``replica("B",
       red, below)`` are the same lane.  The rest must be named.
-
-   None of these defaults reach a ``send`` or ``recv`` label: those keep their own arguments, and
-   their side is chosen to stay clear of the message arrow.
 
 .. typst:function:: event(..args)
 
