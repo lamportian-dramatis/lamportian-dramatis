@@ -1,23 +1,10 @@
-// lamportian-dramatis -- Lamport diagrams for replicated systems: one timeline per replica, local
+// lamportian-dramatis -- Lamport diagrams for distributed systems: one timeline per replica, local
 // events as dots on that timeline, and arrows for the messages that carry events from one replica
 // to another.  The axis the timelines run along is logical time, in the sense of Lamport clocks;
 // `orientation` says which way it points, and the replicas stack across it.
-//
-// Pre-1.0: nothing here is a stable API until 1.0.0.  Argument names, defaults and the shape of
-// what these helpers return are all still open, and may break between 0.x releases.
-//
-// Columns are *solved*, not authored.  You list each replica's local events in order and name the
-// messages; the layout puts every event in the earliest column that keeps it after its predecessor
-// on the same replica and after the send of every message it receives.  So a diagram stays correct
-// while you insert events -- nothing needs re-padding -- and a receive that would land before its
-// own send is a causal cycle, which fails compilation instead of drawing a backwards arrow.
-//
-// The `///` comments below are the reference for each function; README.md is the tutorial.
-
 #import "@preview/cetz:0.5.2"
 
-/// Lane colors, cycled over `replicas` in order.  Override per replica with
-/// `(id: "Shore", color: red)`.
+/// Lane colors, cycled over `replicas` in order.
 #let default-palette = (
   rgb("#1f6feb"),
   rgb("#a16207"),
@@ -35,11 +22,11 @@
 #let left = left
 #let right = right
 
-/// Which way logical time runs.  `rightwards` and `leftwards` lay the timelines out horizontally and
-/// stack the replicas top to bottom; `downwards` and `upwards` lay them out vertically and stack the
-/// replicas left to right.  `horizontal` and `vertical` are the two that need no thinking about, and
-/// are `rightwards` and `downwards` under a shorter name.  Plain strings work everywhere an
-/// orientation is asked for, so `orientation: "vertical"` needs no import.
+/// Every side a label may be asked to sit on, in any orientation.  Which two of them are legal is the
+/// diagram's business, since only there is the orientation known.
+#let _sides = (top, bottom, left, right)
+
+/// Values of orientation: Which way logical time runs.
 #let rightwards = "rightwards"
 #let leftwards = "leftwards"
 #let downwards = "downwards"
@@ -127,17 +114,10 @@
 }
 
 /// CeTZ's drawing commands, re-exported so that an `overlays` body can reach them without the caller
-/// pinning a second dependency: `#import "@preview/lamportian-dramatis:0.2.0": draw` and then
-/// `#import draw: *`.  It is the same module the diagram draws itself with, hence the same version.
+/// pinning a second dependency.
 #let draw = cetz.draw
 
-/// The layers of a diagram, bottom to top, and the keys `overlays` takes.  A drawing given for a
-/// layer is appended to that layer's own drawing pass -- after everything the diagram draws there,
-/// before anything in any later pass.  `background` and `foreground` are not passes of the diagram:
-/// they are bookends, one before the first and one after the last.
-///
-/// They are plain strings, so `overlays: (marks: ..)` needs no import; the bindings are for naming a
-/// layer where a string would read worse, and `layers` for walking the stack.
+/// The layers of a diagram, bottom to top, and the keys `overlays` takes.
 #let background = "background"
 #let arrows = "arrows"
 #let backdrops = "backdrops"
@@ -147,12 +127,8 @@
 #let foreground = "foreground"
 #let layers = (background, arrows, backdrops, timelines, marks, labels, foreground)
 
-/// Every side a label may be asked to sit on, in any orientation.  Which two of them are legal is the
-/// diagram's business, since only there is the orientation known.
-#let _sides = (top, bottom, left, right)
-
-/// Reads the optional text size of a point's own label, which must be a length -- `size: 0.8em`
-/// spares the caller a `#text(0.8em)[...]` wrapper around the label.
+/// Reads the optional text size of a point's own label, which must be a length.  Accepts only
+/// `none` or a length.
 #let _point-size(args) = {
   let size = args.named().at("size", default: none)
   assert(
@@ -162,8 +138,7 @@
   size
 }
 
-/// Reads the optional halo of a point's own label: how far its backdrop reaches past the label's own
-/// box.  `auto` takes `_label-halo`, a length sets an exact reach, and `none` drops the backdrop.
+/// Reads the optional halo of a point's own label.  Accepts only none, `auto`, or a length.
 #let _point-halo(args) = {
   let halo = args.named().at("halo", default: auto)
   assert(
@@ -173,9 +148,8 @@
   halo
 }
 
-/// Reads the optional paint of a point's own label backdrop.  `auto` is the white that breaks
-/// whatever runs behind the label, `none` leaves the backdrop unpainted -- which keeps the halo, and
-/// so the label's own box, without hiding anything under it -- and a paint is used as given.
+/// Reads the optional paint of a point's own label backdrop.  Accepts only `none`, `auto`, or a
+/// paint (colors, gradients or tilings).
 #let _point-fill(args) = {
   let fill = args.named().at("fill", default: auto)
   assert(
@@ -189,11 +163,14 @@
 /// centred, a ratio of the label's own width, or an exact length.
 #let _is-displacement(value) = value == auto or value == 0 or type(value) in (length, ratio)
 
-/// A local event on a replica's timeline.  Its body is the label -- content or a plain string -- and
-/// `position` puts that label on one side of the timeline: `above` or `below` on a horizontal diagram,
-/// `left` or `right` on a vertical one, with `size` setting its text size.  Both fall back on the
-/// lane's own defaults -- see `replica` -- and then on the orientation's default side, at the
-/// diagram's text size.  A side the orientation has no room for is dropped and ignored.
+/// A local event on a replica's timeline.
+///
+/// Its body (content or plain string ) is the label shown in the diagram.
+///
+/// `position` puts the label on one side of the timeline: `above` or `below` on a horizontal
+/// diagram, `left` or `right` on a vertical one, with `size` setting its text size.  Both fall back
+/// on the lane's own defaults -- see `replica` -- and then on the orientation's default side, at
+/// the diagram's text size.  A side the orientation has no room for is dropped and ignored.
 ///
 /// `displacement` slides the label along the timeline, out of being centred on its own dot: a ratio is
 /// taken against the label's own extent along that timeline -- its width when the timelines are rows,
@@ -574,9 +551,11 @@
   (lanes: out-lanes, rows: out-rows)
 }
 
-/// A replica lane, and the defaults the local events on it fall back on.  `name` is the id that the
-/// `events` dictionary keys on; `label` is what the diagram prints for the lane and `color` is its
-/// color, either of which may also be given positionally -- colors are told apart by type.
+/// A replica lane, and the defaults the local events on it fall back on.
+///
+/// `name` is the id that the `events` dictionary keys on; `label` is what the diagram prints for
+/// the lane and `color` is its color, either of which may also be given positionally -- colors are
+/// told apart by type.
 ///
 /// The rest are defaults for this lane's events, each still overridable event by event: `position`
 /// (`above`/`below` on a horizontal diagram, `left`/`right` on a vertical one, positional too) is the
@@ -1322,8 +1301,8 @@
         let (r0, r1) = lane-strip(ri)
         axes-rect(t0, t1, r0, r1, pad)
       },
-      // The replica names: one name's own box, or -- asked for without a replica -- the one strip that
-      // holds every name, which is the column the diagram keeps clear before its lanes begin.
+      // The replica names: one name's own box, or -- asked for without a replica -- the one strip
+      // that holds every name, which is the column the diagram keeps clear before its lanes begin.
       names-rect: (..args) => {
         let positional = args.pos()
         assert(

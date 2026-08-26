@@ -1,10 +1,10 @@
-lamportian-dramatis
-===================
+A Typst Package for Lamport Diagrams
+====================================
 
-Lamport diagrams for replicated systems, as a `Typst <https://typst.app/>`__ package: one horizontal
-timeline per replica, local events as dots on that timeline, and arrows for the messages that carry
-events from one replica to another.  The horizontal axis is logical time, in the sense of the clocks
-of `Time, Clocks, and the Ordering of Events in a Distributed System
+``lamportian-dramatis`` is a Typst_ package to draw Lamport diagrams.  You can easily draw lines for
+each replica, local events as dots on that timeline, and arrows for the messages that carry events
+from one replica to another.  The timeline axis is logical time, in the sense of the clocks of
+`Time, Clocks, and the Ordering of Events in a Distributed System
 <https://lamport.azurewebsites.net/pubs/time-clocks.pdf>`__.
 
    **Pre-1.0.**  This is young and still changing a lot.  Nothing here is a stable API until 1.0.0,
@@ -15,7 +15,7 @@ of `Time, Clocks, and the Ordering of Events in a Distributed System
 .. image:: gallery/gorgeous.png
    :alt: A fictional scenario showing a convergence bug in a fictional system
 
-The whole document that draws it:
+The image above is drawing with a DSL-like giving the replicas and their events:
 
 .. typst-code::
 
@@ -53,6 +53,7 @@ The whole document that draws it:
      ),
    )
 
+
 Read on
 -------
 
@@ -84,3 +85,6 @@ Elsewhere
    gallery
    changelog
    genindex
+
+
+.. _Typst: https://typst.app/

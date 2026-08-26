@@ -8,20 +8,19 @@ what says which release each of these landed in, and what is still waiting.
 
 .. typst:function:: lamport-diagram(caption: none, replicas: (), events: (:), orientation: horizontal, overlays: none, col-gap: none, row-gap: none, text-size: 0.62em, dot: 0.095, message-stroke: 0.9pt + luma(110))
 
-   :param caption: with one, the result is a ``figure``; without one it is the bare drawing, to
-                   place inside a ``figure`` of your own.  Attach a ``<label>`` *after* the call and
-                   the reference resolves to the figure, numbering alongside the document's others.
+   :param orientation: The direction and sense of logical time. Defaults to `horizontal`:value:.
 
-   :param replicas: the lane order: top to bottom on a horizontal diagram, left to right on a
-                    vertical one.  Each entry is an id string, a `replica`:func: -- which also
-                    carries that lane's event defaults -- or a bare dictionary of the same fields.
+   :param caption: If provided, the result is a ``figure``; without one it is the bare drawing, to
+      place inside a ``figure`` of your own.  Attach a ``<label>`` after the call and the reference
+      resolves to the figure, numbering alongside the document's others.
+
+   :param replicas: the lanes order: top to bottom on a horizontal diagram, left to right on a
+      vertical one.  Each entry is an id string, a `replica`:func: -- which also carries that lane's
+      event defaults -- or a bare dictionary of the same fields.
 
    :param events: each replica id mapped to that replica's local history, in order.  An entry is
-                  bare content or a bare string for a local event, or one of `event`:func:,
-                  `send`:func:, `recv`:func:, `sync`:func:, `idle`:func: and `gap`:func:.  Every
-                  replica must have an entry, and every entry must name a declared replica.
-
-   :param orientation: which way logical time runs.  See `orientation <horizontal>`:value:.
+      bare content or a bare string for a local event, or one of `event`:func:, `send`:func:,
+      `recv`:func:, `sync`:func:, `idle`:func: and `gap`:func:.
 
    :param overlays: your own CeTZ, drawn into the diagram at a layer of your choosing.  See
                     `Overlays <overlays>`:doc:.
@@ -82,121 +81,111 @@ what says which release each of these landed in, and what is still waiting.
 
    Which way logical time runs.  It takes one of the six values below.
 
-.. typst:value:: horizontal
+   .. typst:value:: horizontal
 
-                 Alias of `rightwards`:value:
+                    Alias of `rightwards`:value:, and the default of `lamport-diagram`:func:.
 
-.. typst:value:: vertical
+   .. typst:value:: vertical
 
-                 Alias of `downwards`:value:
+                    Alias of `downwards`:value:
 
-.. typst:value:: rightwards
-.. typst:value:: leftwards
-.. typst:value:: downwards
-.. typst:value:: upwards
+   .. typst:value:: rightwards
+   .. typst:value:: leftwards
 
-Which way logical time runs.  `rightwards`:value: and `leftwards`:value: lay the timelines out as
-rows and stack the replicas downwards; `downwards`:value: and `upwards`:value: lay them out as
-columns and stack the replicas rightwards.  `horizontal`:value: and `vertical`:value: are the two
-that need no thinking about, and are `rightwards`:value: and `downwards`:value: under a shorter
-name.  These are plain strings, so ``orientation: "vertical"`` works without importing anything.
+      The timelines run horizontally to the right or left.
 
-The orientation decides which sides a label may sit on, and which one it sits on by default:
+   .. typst:value:: downwards
+   .. typst:value:: upwards
 
-.. list-table::
-   :header-rows: 1
+      The timelines run vertically.
 
-   * - Orientation
-     - Sides
-     - Default
-   * - ``horizontal``, ``rightwards``, ``leftwards``
-     - ``above``, ``below``
-     - ``above``
-   * - ``vertical``, ``downwards``, ``upwards``
-     - ``left``, ``right``
-     - ``right``
+   .. note:: These are plain strings, so ``orientation: "vertical"`` works without importing
+             anything.
 
-A side the orientation has no room for -- `above`:value: on a vertical diagram, `left`:value: on a
-horizontal one -- is *not* an error: it is dropped back to that default and otherwise ignored, so
-flipping a finished diagram from horizontal to vertical stays one edit rather than a compile error
-on every lane that named a side.  It passes in silence, which is not the ideal: the ideal is a
-compiler warning, and Typst gives user code no way to raise one.  Printing the complaint into the
-document instead would put it in front of the reader rather than the author, which is worse than
-saying nothing.
+   The orientation decides which sides a label may sit on, and which one it sits on by default:
 
-.. image:: gallery/vertical.png
-   :alt: The worked example from the front page, drawn vertically
+   .. list-table::
+      :header-rows: 1
+
+      * - Orientation
+        - Sides
+        - Default
+      * - ``horizontal``, ``rightwards``, ``leftwards``
+        - ``above``, ``below``
+        - ``above``
+      * - ``vertical``, ``downwards``, ``upwards``
+        - ``left``, ``right``
+        - ``right``
 
 .. typst:function:: replica(name, ..defaults)
 
-   A replica lane, and the defaults the local events on it fall back on.  ``name`` is the id that
-   the ``events`` dictionary keys on.
+   Define the defaults to be applied to events on the replica's lane.
 
    :param label: what the diagram prints for the lane.  Defaults to ``name``.
 
    :param color: the lane's color.  Defaults to the next entry of ``default-palette``, cycled over
-                 `replicas <replica>`:func: in order.
+      `replicas <replica>`:func: in order.
 
-   :param position: ``above`` or ``below``, the side of the timeline this lane's event labels sit on
-                    -- ``left`` or ``right`` on a vertical diagram; see `orientation`:arg:.
+   :param position: `above`:value: or `below`:value:, the side of the timeline this lane's event
+      labels sit on -- `left`:value: or `right`: on a vertical diagram; see `orientation`:arg:.
 
    :param size: the text size of this lane's event labels.
 
    :param displacement: how far this lane's event labels slide off their own dot.
 
    :param first-displacement: the same, for the lane's opening event, the one that would otherwise
-                              crowd the replica name.  Left alone it is the orientation's own:
-                              ``20%`` on a horizontal diagram, where the name sits immediately left
-                              of that first label, and ``0%`` on a vertical one, where the name is
-                              before the lane in time and the labels are beside it, so there is
-                              nothing to move out of.  ``label``, ``color`` and ``position`` may
-                              also be given positionally, in any order: they are told apart by type,
-                              so ``replica("A", below, red)`` and ``replica("B", red, below)`` are
-                              the same lane.  The rest must be named.
+      crowd the replica name.  Left alone it is the orientation's own: ``20%`` on a horizontal
+      diagram, where the name sits immediately left of that first label, and ``0%`` on a vertical
+      one, where the name is before the lane in time and the labels are beside it, so there is
+      nothing to move out of.  ``label``, ``color`` and ``position`` may also be given positionally,
+      in any order: they are told apart by type, so ``replica("A", below, red)`` and ``replica("B",
+      red, below)`` are the same lane.  The rest must be named.
 
    None of these defaults reach a ``send`` or ``recv`` label: those keep their own arguments, and
    their side is chosen to stay clear of the message arrow.
 
 .. typst:function:: event(..args)
 
-A local event on a replica's timeline.  Its body is the label -- content or a plain string.
+   A local event on a replica's timeline.  Its body is the label -- content or a plain string.
 
-- ``position`` -- `above`:value: or `below`:value: the timeline, or `left`:value: or `right`:value:
-  on a vertical diagram; see `orientation`:arg:.
+   :param position: `above`:value: or `below`:value: the timeline, or `left`:value: or
+      `right`:value: on a vertical diagram; see `orientation`:arg:.
 
-- ``size`` -- the label's text size.
+   :param size: the label's text size.
 
-- ``displacement`` -- slides the label along the timeline, out of being centred on its own dot.  A
-  ratio is taken against the label's own width, so ``+50%`` leaves the label's left edge over the
-  dot and ``-50%`` its right edge, while a length is an exact offset and ``0`` (or ``0%``) centres
-  it.  On a vertical diagram the ratio is taken against the label's height instead, that being what
-  runs along the timeline there.
+   :param displacement: slides the label along the timeline, out of being centred on its own dot.  A
+      ratio is taken against the label's own width, so ``+50%`` leaves the label's left edge over
+      the dot and ``-50%`` its right edge, while a length is an exact offset and ``0`` (or ``0%``)
+      centres it.  On a vertical diagram the ratio is taken against the label's height instead, that
+      being what runs along the timeline there.
 
-- ``width`` -- wraps the label to a fixed width instead of letting it run along the timeline on one
-  line, which is what keeps a long label from crowding its neighbors.  \ **Named only**: a bare
-  length is read as a ``displacement``, that being the far commoner one to reach for.  The box is
-  centred on the mark like any other label, and its contents are left to you -- wrap the body in
-  ``align(center, ..)`` if centred lines read better than the ragged right edge.
+   :param width: wraps the label to a fixed width instead of letting it run along the timeline on
+      one line, which is what keeps a long label from crowding its neighbors.  **Named only**: a
+      bare length is read as a ``displacement``, that being the far commoner one to reach for.  The
+      box is centred on the mark like any other label, and its contents are left to you -- wrap the
+      body in ``align(center, ..)`` if centred lines read better than the ragged right edge.
 
-- ``halo`` -- how far the label's backdrop reaches past the label's own box, which is what breaks an
-  arrow crossing the lane so it does not crowd the glyphs.  ``auto`` (the default) matches the reach
-  of the disc under a mark, so a label and a dot break an arrow by the same amount; a length sets an
-  exact reach, and ``none`` drops the backdrop, letting whatever is behind show through.
+   :param halo: how far the label's backdrop reaches past the label's own box, which is what breaks
+      an arrow crossing the lane so it does not crowd the glyphs.  ``auto`` (the default) matches
+      the reach of the disc under a mark, so a label and a dot break an arrow by the same amount; a
+      length sets an exact reach, and ``none`` drops the backdrop, letting whatever is behind show
+      through.
 
-- ``fill`` -- what that backdrop is painted with.  ``auto`` (the default) is white, which is what
-  breaks whatever runs behind the label; a paint is used as given, so a label sitting in a wash an
-  `overlay <overlays>`:doc: laid down can be given that same wash and read as part of it rather than
-  as a hole punched in it; and ``none`` leaves the backdrop unpainted, which is ``halo: none`` with
-  the label's box kept.  A translucent paint hides no more than it says, so an arrow behind a washed
-  label still shows through -- and a translucent fill over a wash of its own color compounds with it
-  into a slightly darker patch.
+   :param fill: what that backdrop is painted with.  ``auto`` (the default) is white, which is what
+      breaks whatever runs behind the label; a paint is used as given, so a label sitting in a wash
+      an `overlay <overlays>`:doc: laid down can be given that same wash and read as part of it
+      rather than as a hole punched in it; and ``none`` leaves the backdrop unpainted, which is
+      ``halo: none`` with the label's box kept.  A translucent paint hides no more than it says, so
+      an arrow behind a washed label still shows through -- and a translucent fill over a wash of
+      its own color compounds with it into a slightly darker patch.
 
-The dot itself never moves: it is the event's place in time, which the layout solves for.
+   The dot itself never moves: it is the event's place in time, which the layout solves for.
 
-Arguments are told apart by type, so they may come in any order and every one of them is optional:
-``event(below, +50%)[AddFile1]`` and ``event(+50%, below, "AddFile1")`` are the same event.  For the
-common case of a label and nothing else, bare content or a bare string in an ``events`` array is
-shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the same event too.
+   Arguments are told apart by type, so they may come in any order and every one of them is
+   optional: ``event(below, +50%)[AddFile1]`` and ``event(+50%, below, "AddFile1")`` are the same
+   event.  For the common case of a label and nothing else, bare content or a bare string in an
+   ``events`` array is shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the
+   same event too.
 
 .. typst:function:: send(name, ..args)
 .. typst:function:: recv(name, ..args)

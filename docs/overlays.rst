@@ -1,16 +1,15 @@
-``overlays``
-============
+Overlays
+========
 
-This page describes the ``overlays`` argument of `lamport-diagram`:func:\ : an escape hatch for
-drawing arbitrary `CeTZ <https://typst.app/universe/package/cetz/>`__ into a diagram, in the
-diagram's own coordinates, addressing the diagram's own points -- and at a chosen depth, so a drawing
-can sit behind what the diagram draws as readily as in front of it.
+This page describes the ``overlays`` argument of `lamport-diagram`:func:.  Overlays allow to draw
+arbitrary `CeTZ <https://typst.app/universe/package/cetz/>`__ into a diagram; using the diagram's
+own coordinates and at a chosen `depth <layers-section>`:ref:.
 
 Terminology, values and types
 -----------------------------
 
-The entries of the *locator* -- the dictionary a drawing is handed, described under `Shape`_ -- take
-and answer in a handful of kinds of value, and the kinds are worth keeping apart:
+The entries of the ``locator`` -- the dictionary a drawing is handed, described under `Shape`_ --
+take and answer in a handful of kinds of value, and the kinds are worth keeping apart:
 
 .. image:: gallery/locators.png
    :alt: Two replicas crossed by dotted guides: one at column 1, which is time 1 as well; a pair at
@@ -23,22 +22,18 @@ and answer in a handful of kinds of value, and the kinds are worth keeping apart
    time
 
      A position along logical time.  It is a real number placed along the axis the timelines run on.
-     ``0`` is the first `column`:term:\ : the solver starts every point there and only ever pushes
-     one later, so nothing is solved before ``0`` -- though a lane whose opening point waits on a
-     message does start further along than that.  Times are what let a drawing be placed at, before
-     or after any moment the diagram holds -- ``-0.5`` falls before the first column, and ``1.5``
-     midway between the second column and the third (if any).
+     ``0`` is the first `column`:term:.  The `solver <columns-solver>`:ref: starts every point there
+     and only increases ``0``.  Times are what let a drawing be placed at, before or after any
+     moment the diagram holds -- ``-0.5`` falls before the first column, and ``1.5`` midway between
+     the second column and the third (if any).
 
    column
 
      One of the whole times the solver hands out, ``0`` up to ``ncols - 1``.  Every column is a
-     `time`:term:; most times are not columns.  This is the discrete thing the layout reasons about,
-     and the only kind that can answer "did these two land at the same moment".  Columns count from
-     ``0``, so a lane's opening point sits in column ``0`` unless a message it receives pushes it
-     later.  That is not the numbering an index uses -- see `Addressing a point`_ -- and ``column("A",
-     1)`` says "the first item written on A", by an index counting from ``1``, and answers ``0``,
-     the column the solver put it in.  An index says where in the lane's array a point stands; a
-     column says when it happens.
+     `time`:term:.  This is the discrete points in the timeline the layout solver reasons about, and
+     the only kind that can answer "did these two land at the same moment" [#semantics-of-column]_.
+     Columns count from ``0``, so a lane's opening point sits in column ``0`` unless it is
+     displaced.  See `Addressing a point`_.
 
    lane
 
@@ -125,6 +120,8 @@ nothing at all -- ``let (draw, mark, ..) = d``, and then ``draw.circle(..)``.
 
 The locator is a dictionary; unpack the entries a layer needs and call them.
 
+.. _layers-section:
+
 Layers
 ------
 
@@ -185,22 +182,15 @@ The layers are part of the API
 Their names and their order are not an internal detail to be read off this page.  ``layers`` is the
 ordered array of them, bottom to top, and the package exports it:
 
-.. typst-code::
+.. typst:value:: layers
 
-   #import "@preview/lamportian-dramatis:0.2.0": layers
+   An array with known layers.  It is just the array::
 
-   #layers
-   // ("background", "arrows", "backdrops", "timelines", "marks", "labels", "foreground")
+      ("background", "arrows", "backdrops", "timelines", "marks", "labels", "foreground")
 
-They are plain strings, as orientations are, so ``overlays: (marks: ...)`` needs no import.
-``layers`` is for when you want to check a name, walk the stack, or build an ``overlays`` dictionary
-out of something that is not a literal.
-
-Exposing them settles what would otherwise be a matter of taste: which layers to offer.  The answer
-is all of them, because the array claims to be how the diagram is drawn.  ``timelines`` earns its
-place not by being useful -- a dashed line along a lane is the only use I can name for it -- but by
-being a pass; leaving it out would make ``layers`` a curated list of good ideas rather than a
-description, and the reader could no longer trust the order.
+They are plain strings, so ``overlays: (marks: ...)`` needs no import.  `layers`:value: is for when
+you want to check a name, walk the stack, or build an ``overlays`` dictionary out of something that
+is not a literal.
 
 ``arrows`` and ``backdrops`` are not the same place
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -237,36 +227,19 @@ it was drawn on.)
 Addressing a point
 ------------------
 
-Every point on a lane is ``(replica, id)``.  An id need only be unique *within its own lane*, which
-is what lets a ``sync``'s two ends and a message's two ends keep the name that pairs them:
+Every point on a lane is ``(replica, id)``.  The ``id`` is either the index of the event in the
+lane, the argument ``id`` to `event`:func:, or the name given to ``send``, ``recv`` and ``sync``.
 
 .. typst-code::
    :only-lines: 2-4
    :dedent:
 
    #lamport-diagram(overlays: d => {
-   mark("A", "bad")        // an event, by the id it was given
-   mark("S", "a-pushes")   // this end of the sync;  mark("A", "a-pushes") is the other
-   mark("C", "c-pushes")   // the send;  mark("S", "c-pushes") is its recv
+      mark("A", "bad")        // an event, by the id it was given
+      mark("S", "a-pushes")   // this end of the sync;  mark("A", "a-pushes") is the other
+      mark("C", "c-pushes")   // the send;  mark("S", "c-pushes") is its recv
    })
 
-``send``, ``recv`` and ``sync`` already carry a name, and that name is their id.  A local ``event``
-has none, so it takes one:
-
-.. typst-code::
-   :only-lines: 2
-   :dedent:
-
-   #lamport-diagram(events: (
-     "A": ([`A.1`], event(id: "bad")[`A.2`], sync("a-pushes")),
-   ))
-
-Ids are opt-in on purpose.  The alternative -- addressing an event by where it sits, ``A.0``,
-``A.1``, … -- would put back exactly the fragility that solving the columns removed: insert one event
-and every drawing below it points silently at the wrong dot.  An id you wrote survives the insert.
-
-Two points on one lane may not share an id, and that is an error rather than a silent win for
-whichever came first.
 
 By index
 ~~~~~~~~
@@ -281,10 +254,10 @@ index ``1`` and column ``0``:
    :dedent:
 
    #lamport-diagram(overlays: d => {
-   mark("A", 1)      // the lane's opening item
-   mark("A", 3)
-   mark("A", -1)     // the last item -- the one index that survives an insert
-   column("B", 2)    // and the same wherever else a point is asked for
+      mark("A", 1)      // the lane's opening item
+      mark("A", 3)
+      mark("A", -1)     // the last item -- the one index that survives an insert
+      column("B", 2)    // and the same wherever else a point is asked for
    })
 
 Ids are strings and indices are integers, so the two never need telling apart by hand.  An index is
@@ -661,3 +634,9 @@ through it, and a ring at ``marks`` so ``A.2``'s own label stays legible over it
        },
      ),
    )
+
+Footnotes
+=========
+
+.. [#semantics-of-column] The actual semantics (simultaneity) are not really defined here.  Every
+   author can provide the correct interpretation.

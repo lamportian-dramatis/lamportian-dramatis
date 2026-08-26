@@ -8,57 +8,51 @@ Reading a diagram
    :alt: A diagram with each of its parts named: a sync between two replicas, a local event, a send
          and the receive it feeds, an elided stretch of time, and a timeline of its own
 
+In following is table, each mark is accompany by some *intended* meaning; but authors might choose
+different semantics.
+
 .. list-table::
    :header-rows: 1
 
    * - Mark
      - Meaning
    * - Solid dot
-     - A purely local step.
+     - A local event, that happens at specific moment in the replica's timeline.
    * - Hollow dot
-     - The replica touches the network here; the attached arrow says in which direction.
+     - The replica receives events or messages from another replica.
    * - Small hollow dot
-     - A send, drawn smaller than the receive it feeds, so the two ends of a message stay tellable
-       apart without tracing the arrow.
+     - A replica sends events or messages to another.
    * - Hollow dot with a dot inside it
-     - One end of a ``sync``, whose arrow carries a head at each end.  Neither end of an exchange is
-       the sender, so neither is drawn as one; the inner dot is what tells a sync's end from a
-       receive without following the arrow out to count its heads.
+     - One end of a `sync`:func: where two replicas exchanges messages, possibly reaching some
+       consensus.
    * - Dotted timeline
-     - Elided time -- events the diagram does not show.
-   * - Timeline arrowhead
-     - Every lane ends in one: it says which way time runs, and that the lane goes on past what is
-       drawn.
+     - Elided time and or local events.  To convey *hidden*, not relevant events.
 
-A receive is drawn by default a centimeter further along in time than its send, so every message
-arrow follows the direction of time without the diagram needing padding put in by hand.  \
-``recv(..., displacement: none)`` puts it in the send's own column instead, for an arrow that runs
-straight across the lanes.
+Conventions of the placements
+-----------------------------
 
-Labels are centred on their own mark and sit on the orientation's default side -- ``above`` a
-horizontal timeline, ``right`` of a vertical one -- except a lane's opening label on a horizontal
-diagram, nudged forward in time so it does not read as belonging to the replica name at its left.  A
-vertical lane takes no such nudge: its name sits before the lane *in time* while its labels sit
-beside it, so the two were never at risk of reading as one.  ``event`` overrides both for one
-event, ``replica`` for a whole lane.
+Time flows in the direction of the arrows of the timeline.  A `recv`:func: event is usually drawn a
+centimeter further in the direction of time, so every message arrow follows the direction of time
+without the diagram needing padding put in by hand.
 
-Arrows are drawn first and everything else on top, so an arrow that crosses a lane it has no
-endpoint on passes *under* that lane rather than striking through it.  A lane erases across the
-whole strip it occupies, marks included: each mark clears the same annulus that an arrow landing on
-it would stop short of, so a passing arrow breaks around a dot instead of running into its edge.
-Labels knock out the arrow behind them for the same reason.
+Normally, labels are centred w.r.t their own mark and sit on the orientation's default side --
+`above`:value: a horizontal timeline, `right`:value: of a vertical one --.  The exception is the
+lane's opening label on a *horizontal diagram*, which is nudged forward in time so it does sit next
+to the replica's name.
+
+.. _columns-solver:
 
 Columns are (mostly) solved, not authored
 -----------------------------------------
 
 You list each replica's local events in order and name the messages.  The layout then puts every
-event in the earliest column that keeps it after its predecessor on the same replica *and* after the
-send of every message it receives.
+event in the earliest `column`:term: that keeps it after its predecessor on the same replica *and*
+after the send of every message it receives.
 
 Two things follow.  A diagram stays correct while you insert events -- nothing needs re-padding,
-because no position along the time axis was ever written by hand.  And a receive that would land
-before its own send is a causal cycle, which fails compilation instead of quietly drawing a
-backwards arrow.
+because no position along the time axis needs ever be written by hand.  And a receive that would
+land before its own send is a causal cycle, which fails compilation.
+
 
 Figures and cross-references
 ----------------------------
