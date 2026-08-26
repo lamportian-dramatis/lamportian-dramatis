@@ -14,26 +14,16 @@ Added
 ~~~~~
 
 - ``fill`` on `event`:func:, `send`:func:, `recv`:func: and `sync`:func:, which paints the backdrop
-  under a point's label.  ``auto`` keeps the white that has always broken whatever runs behind the
-  label; a paint is used as given, so a label standing in a wash an overlay laid down can be given
-  that same wash and read as part of it instead of as a hole punched in it; ``none`` leaves the
-  backdrop unpainted, which is ``halo: none`` with the label's box kept.
+  under a point's label.
 
-- Rectangles round a diagram's own parts, for an overlay to draw against: `lane-rect(lane)
-  <lane-rect>`:locator: for a whole timeline, `gap-rect(replica, index) <gap-rect>`:locator: for the
-  stretch one `gap`:func: elides, `names-rect() <names-rect>`:locator: -- or `names-rect(replica)
-  <names-rect>`:locator: -- for the strip the replica names are set in, and `arrow-rect(name)
-  <arrow-rect>`:locator: for a message or a sync together with the two marks it runs between.  Each
-  answers with the two corners ``rect`` takes, so it spreads straight into one, and each takes a
-  ``pad`` that grows it: one number for every side, or a pair said in the diagram's own axes -- how
-  far along the timelines, how far across them -- so that a padded box turns with the diagram like
-  everything else an overlay is given.
+- New locators:
 
-- `time(replica, id-or-index) <time>`:locator:
-
-- `pip-args(replica, id-or-index) <pip-args>`:locator:
-
-- `arrow-mid(name) <arrow-mid>`:locator:.
+  - `arrow-mid(name) <arrow-mid>`:locator:
+  - `gap-rect(replica, index) <gap-rect>`:locator:
+  - `lane-rect(lane) <lane-rect>`:locator:
+  - `names-rect`:locator:
+  - `pip-args(replica, id-or-index) <pip-args>`:locator:
+  - `time(replica, id-or-index) <time>`:locator:
 
 - ``halo`` on `send`:func:, `recv`:func: and `sync`:func:.
 
