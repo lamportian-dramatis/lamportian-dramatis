@@ -877,6 +877,7 @@
     .fold(1, calc.max)
 
   let send-dot = dot * 0.7
+
   // The thickness every timeline is drawn with, and the dot inside the ring at either end of a
   // two-way exchange, said as a fraction of it: a send is drawn smaller and a receive is drawn
   // hollow, and the two ends of a sync are neither of those, so this is what tells one from a receive
@@ -884,6 +885,7 @@
   // line it sits on, it reads as a dot of ink in the ring rather than as a mark of its own.
   let lane-thickness = 1.1pt
   let sync-pip = 0.8 * lane-thickness / 2 / 1cm
+
   // The two axes of the drawing, both in canvas centimeters: `t` runs along the timelines and `r`
   // across them.  Everything below is written in those terms and only `point` knows which way round
   // they are on the page, so the four orientations share one body of drawing code.
@@ -892,6 +894,8 @@
     t * axes.time.at(0) + r * row-gap * axes.lane.at(0),
     t * axes.time.at(1) + r * row-gap * axes.lane.at(1),
   )
+
+  // Slightly negative because a lane leads in a little before column ``0``
   let lane-start = -0.18
 
   // A label sits a fixed step off its lane, on whichever of the two sides it was given; both the step
@@ -1181,6 +1185,7 @@
         (calc.max(x0, x1) + gx, calc.max(y0, y1) + gy),
       )
     }
+
     // The same, for a region said in the diagram's own axes: a stretch of time in canvas centimeters,
     // and a stretch of lanes.
     let axes-rect = (t0, t1, r0, r1, pad) => {
@@ -1188,6 +1193,7 @@
       let (x1, y1) = point(t1, r1)
       grown(x0, y0, x1, y1, pad)
     }
+
     // The stretch of time one `gap` elides, as the two times its dots run between.  The timeline is
     // interrupted over exactly this stretch and `gap-rect` is drawn round exactly this stretch, so
     // neither can drift from the other.
@@ -1196,9 +1202,24 @@
       let t = t-at(ri, ii)
       (t - half, t + half)
     }
+
     // The strip a lane occupies, across the lanes: the same half-thickness whichever region asks for
     // it, so a rectangle round an elided stretch lines up with one round the whole lane.
     let lane-strip = ri => (ri - lane-reach / row-gap, ri + lane-reach / row-gap)
+
+    // The box of a measured piece of content, hung off the point the drawing sets it at.  An anchor
+    // names the edge of the box that lands on that point.  The replica names and the event labels
+    // both get their boxes here, so a box that goes out agrees with the anchor the drawing used.
+    let hung-box = ((x, y), anchor, w, h) => if anchor == "east" {
+      (x - w, y - h / 2, x, y + h / 2)
+    } else if anchor == "west" {
+      (x, y - h / 2, x + w, y + h / 2)
+    } else if anchor == "south" {
+      (x - w / 2, y, x + w / 2, y + h)
+    } else {
+      (x - w / 2, y - h, x + w / 2, y)
+    }
+
     // A replica's name, and the box it goes in: the box is measured off the name itself and hung off
     // the anchor that puts a name just before the start of its own lane.  The drawing sets the name
     // into this box and `names-rect` hands this box out, so the two cannot disagree about where a
@@ -1206,18 +1227,46 @@
     let name-content = ri => text(fill: lanes.at(ri).color, weight: "medium", lanes.at(ri).label)
     let name-box = ri => {
       let size = measure(name-content(ri))
-      let (w, h) = (size.width / 1cm, size.height / 1cm)
-      let (x, y) = point(name-t, ri)
-      if axes.name-anchor == "east" {
-        (x - w, y - h / 2, x, y + h / 2)
-      } else if axes.name-anchor == "west" {
-        (x, y - h / 2, x + w, y + h / 2)
-      } else if axes.name-anchor == "south" {
-        (x - w / 2, y, x + w / 2, y + h)
-      } else {
-        (x - w / 2, y - h, x + w / 2, y)
-      }
+      hung-box(point(name-t, ri), axes.name-anchor, size.width / 1cm, size.height / 1cm)
     }
+
+    // Where the drawing sets an event's label.  The displacement moves the label along the timeline.
+    // The side then steps it off the lane; a side is a page direction, so it does not turn with the
+    // orientation.  The drawing sets the label here, and `label-box` hangs its box here, so the two
+    // always agree.
+    let label-at = (ri, ii) => {
+      let it = rows.at(ri).at(ii)
+      let (bx, by) = point(t-at(ri, ii) + label-offset-of(it), ri)
+      let (sx, sy) = side-offset(side-of(it, ri))
+      (bx + sx, by + sy)
+    }
+    // And the box the drawing sets it in: the size of the label, plus the padding of its halo on
+    // every side, plus the slack below the baseline for the glyphs that reach under it.  The halo
+    // fills this box, so this is the box to give out -- a rectangle round a label is the box the
+    // label went in.
+    //
+    // CeTZ measures a label between the cap height and the baseline, and it measures the slack on a
+    // copy with no line breaks.  This measures both the same way.  A box measured another way is not
+    // the box on the page.
+    let label-box = (ri, ii) => {
+      let it = rows.at(ri).at(ii)
+      let body = label-of(it)
+      let measured = (bottom, inner) => measure(
+        text(top-edge: "cap-height", bottom-edge: bottom, inner),
+      )
+      let size = measured("baseline", body)
+      let flat = [#show linebreak: [ ]; #body]
+      let slack = measured("bounds", flat).height - measured("baseline", flat).height
+      let halo = label-halo-of(it)
+      let pad = if halo == none { 0 } else { halo }
+      hung-box(
+        label-at(ri, ii),
+        side-anchor(side-of(it, ri)),
+        size.width / 1cm + 2 * pad,
+        (size.height + slack) / 1cm + 2 * pad,
+      )
+    }
+
     // The one box that holds every one of the boxes given.
     let union-of = boxes => boxes.fold(
       boxes.at(0),
@@ -1301,30 +1350,44 @@
         let (r0, r1) = lane-strip(ri)
         axes-rect(t0, t1, r0, r1, pad)
       },
-      // The replica names: one name's own box, or -- asked for without a replica -- the one strip
-      // that holds every name, which is the column the diagram keeps clear before its lanes begin.
+      // The written parts of the diagram, from the widest to the narrowest.  With no argument, the
+      // one strip that holds every replica name: the column the diagram keeps clear before the lanes
+      // begin.  With a replica, the box of that one name.  With a replica and a point on it, the box
+      // of that point's label, wherever its side and its displacement put it.
       names-rect: (..args) => {
         let positional = args.pos()
         assert(
-          positional.len() <= 1,
-          message: "lamport-diagram: `names-rect` takes one replica, or none at all for the strip "
-            + "that holds every name",
+          positional.len() <= 2,
+          message: "lamport-diagram: `names-rect` takes a replica and a point for one label, one "
+            + "replica for that replica's name, or none at all for the strip that holds every name",
         )
         for key in args.named().keys() {
           assert(key == "pad", message: "lamport-diagram: `names-rect` has no `" + key + "` parameter")
         }
-        let which = if positional.len() == 1 {
-          let ri = lane-of(positional.at(0))
+        let (x0, y0, x1, y1) = if positional.len() == 2 {
+          let (ri, ii) = index-of(..positional)
+          let it = rows.at(ri).at(ii)
           assert(
-            type(ri) == int and ri >= 0 and ri < lanes.len(),
-            message: "lamport-diagram: a name belongs to a replica, so name one rather than a lane "
-              + "between two of them",
+            it.body != none,
+            message: "lamport-diagram: `names-rect` names a point on replica '"
+              + lanes.at(ri).id
+              + "' that carries no label -- there is no box round a label the diagram never set",
           )
-          (ri,)
+          label-box(ri, ii)
         } else {
-          range(lanes.len())
+          let which = if positional.len() == 1 {
+            let ri = lane-of(positional.at(0))
+            assert(
+              type(ri) == int and ri >= 0 and ri < lanes.len(),
+              message: "lamport-diagram: a name belongs to a replica, so name one rather than a lane "
+                + "between two of them",
+            )
+            (ri,)
+          } else {
+            range(lanes.len())
+          }
+          union-of(which.map(name-box))
         }
-        let (x0, y0, x1, y1) = union-of(which.map(name-box))
         grown(x0, y0, x1, y1, args.named().at("pad", default: 0))
       },
       // An arrow, by the name that pairs its two ends: a message name or a sync's.  The rectangle
@@ -1530,18 +1593,15 @@
       for (ri, lane) in lanes.enumerate() {
         for (ii, it) in rows.at(ri).enumerate() {
           if it.body != none {
-            let side = side-of(it, ri)
             // A label gets the same backdrop a mark does, for the same reason: the arrows are already
             // drawn, and one crossing this lane has to break around the label rather than run through
             // its glyphs.  `halo: none` drops it, for a label meant to let what is behind show through.
             let halo-pad = label-halo-of(it)
-            // The displacement slides the label along the timeline; the side then steps it off the
-            // lane, which is a page direction and so does not turn with the orientation.
-            let base = point(t-at(ri, ii) + label-offset-of(it), ri)
-            let step = side-offset(side)
+            // The drawing sets the label at the point `label-at` gives, with the anchor `label-box`
+            // hangs its box off.  The box `names-rect` gives out is then the box this label went in.
             content(
-              (base.at(0) + step.at(0), base.at(1) + step.at(1)),
-              anchor: side-anchor(side),
+              label-at(ri, ii),
+              anchor: side-anchor(side-of(it, ri)),
               frame: if halo-pad == none { none } else { "rect" },
               fill: if it.fill == auto { white } else { it.fill },
               stroke: none,

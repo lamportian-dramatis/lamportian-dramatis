@@ -431,9 +431,9 @@ is what keeps a padded box the same box when the diagram is turned on its side:
    )
 
 Unpadded, a rectangle is exactly the part it names, and that is what makes it worth asking for: the
-diagram sets its names into the very box ``names-rect`` hands out, interrupts a lane over the very
-stretch ``gap-rect`` answers with, and runs its arrows between the very points ``arrow-mid`` takes
-the middle of.  None of it is re-derived, so none of it can drift.
+diagram sets its names and its labels into the very boxes ``names-rect`` hands out, interrupts a
+lane over the very stretch ``gap-rect`` answers with, and runs its arrows between the very points
+``arrow-mid`` takes the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: lane-rect(lane, pad: 0)
 
@@ -451,9 +451,46 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
 .. typst:locator:: names-rect(pad: 0)
 
-   Return the rectangle round the strip the replica names are set in: the column the diagram keeps
-   clear before the lanes begin.  Given a replica -- ``names-rect("A")`` -- it is that one name's
-   own box instead.
+   Return the rectangle that surrounds a written part of the diagram.  It takes up to two
+   positional arguments, and each one narrows what it answers for:
+
+   .. typst-code::
+      :only-lines: 2-4
+      :dedent:
+
+      #lamport-diagram(overlays: d => {
+         names-rect()               // the strip that holds all replica names
+         names-rect("A")            // that one replica's name
+         names-rect("A", "a2")      // the label of that one point on it
+      })
+
+   With no argument it is the strip the replica names are set in: the column the diagram keeps clear
+   before the lanes begin.
+
+   With a replica name, it is that one name's own box.
+
+   With a replica name and a point on it -- by id or by index, the way every other point is named --
+   it is the box the label of that point went in.  The side the label sits on and the displacement
+   it carries have already moved it, and the box follows the label there.  It is the box the label's
+   ``halo`` fills, or the label's own box where ``halo: none`` drops that backdrop, so a rectangle
+   asked for here lands round the label and not round the mark the label belongs to:
+
+   .. typst-code::
+      :only-lines: 4-7
+      :dedent:
+
+      #lamport-diagram(
+        overlays: (
+          foreground: locators => {
+            // A rounded box round one label, in the lane's own color.
+            let (names-rect, color-of, draw, ..) = locators
+            draw.rect(..names-rect("A", "a2", pad: 0.05), stroke: color-of("A") + 0.5pt, radius: 0.05)
+          },
+        )
+      )
+
+   .. important:: Naming a `gap`:func:, `idle`:func:, or any `events <event>`:func: (including
+      `send`:func:, `sync`:func:, or `recv`:func:) without a content fail compilation.
 
 .. typst:locator:: arrow-rect(name, pad: 0)
 
@@ -477,9 +514,7 @@ the middle of.  None of it is re-derived, so none of it can drift.
 
    Two times: the one each lane's line starts at, and the one it ends at.  The first is slightly
    negative, because a lane leads in a little before column ``0``; the second is past ``ncols - 1``,
-   because the line runs on beyond the last mark to carry its arrowhead.  Neither is a column, which
-   is what the distinction above is for.  Every lane is drawn over the same stretch, so there is one
-   pair for the whole diagram and no replica to ask about.
+   because the line runs on beyond the last mark to carry its arrowhead.
 
 .. typst:locator:: replicas
 
@@ -570,6 +605,9 @@ Errors
 
 - ``gap-rect`` given a point that is not a ``gap`` fails compilation, naming the kind it found
   there.  An arrow name that is neither a message nor a ``sync`` fails the same way.
+
+- ``names-rect`` given a point that carries no label fails compilation, and so does a third
+  positional argument.
 
 - A ``pad`` that is neither a number nor a pair of them fails compilation.
 
