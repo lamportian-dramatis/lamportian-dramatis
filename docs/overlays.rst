@@ -378,8 +378,8 @@ What the locator holds
 
    Return the `coordinate`:term: of the middle of that same shaft, from the same two ends.  It is to
    an arrow an overlay draws what `arrow-mid(name) <arrow-mid>`:locator: is to one the diagram drew:
-   the place an arrow's own label goes before it is stepped off the shaft, and so the place to hang a
-   note.
+   the place an arrow's own label goes before it is stepped off the shaft, and so the place to hang
+   a note.
 
 .. typst:locator:: column(replica, id-or-index)
 

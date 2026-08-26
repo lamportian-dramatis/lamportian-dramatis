@@ -33,7 +33,7 @@
       let mp = message-mid(..back-channel)
       note(mp, luma(100))[
         server already\
-        commited to the DB
+        committed its DB
       ]
     }
   )
