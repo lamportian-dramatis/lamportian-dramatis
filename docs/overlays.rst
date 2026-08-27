@@ -270,9 +270,9 @@ What the locator holds
 .. typst:locator:: mark(replica, id-or-index)
 
    Return the CeTZ coordinate of the mark the diagram drew for that point -- a local ``event``, or
-   either end of a ``send``, ``recv`` or ``sync``.  It includes the sub-column ``displacement`` that
-   leans an arrow off a straight run across the lanes, so it is where the dot really landed rather than
-   where its column nominally is.
+   either end of a ``send``, ``recv`` or ``sync``.  It includes the sub-column ``mark-displacement``
+   that leans an arrow off a straight run across the lanes, so it is where the dot really landed
+   rather than where its column nominally is.
 
    A coordinate has a lane baked into it: the lane of the replica you named.  That is the whole
    difference from ``column``, and it is what makes ``column`` the one to reach for when a drawing
@@ -420,7 +420,7 @@ What the locator holds
 .. typst:locator:: time(replica, id-or-index)
 
    Return the `time`:term: that point's mark was drawn at -- i.e. the `column`:term: it was solved
-   into, plus whatever ``displacement`` off that column.
+   into, plus whatever ``mark-displacement`` off that column.
 
    It is a time, so it composes with a lane: ``point(time("C", "c-reads"), "C")`` is exactly
    ``mark("C", "c-reads")`` -- the same place, said in the diagram's own axes rather than on the
@@ -539,10 +539,11 @@ lane over the very stretch ``gap-rect`` answers with, and runs its arrows betwee
    With a replica name, it is that one name's own box.
 
    With a replica name and a point on it -- by id or by index, the way every other point is named --
-   it is the box the label of that point went in.  The side the label sits on and the displacement
-   it carries have already moved it, and the box follows the label there.  It is the box the label's
-   ``halo`` fills, or the label's own box where ``halo: none`` drops that backdrop, so a rectangle
-   asked for here lands round the label and not round the mark the label belongs to:
+   it is the box the label of that point went in.  The side the label sits on and the
+   ``label-displacement`` it carries have already moved it, and the box follows the label there.  It
+   is the box the label's ``label-padding`` fills, or the label's own box where ``label-padding:
+   none`` drops that backdrop, so a rectangle asked for here lands round the label and not round the
+   mark the label belongs to:
 
    .. typst-code::
       :only-lines: 4-7

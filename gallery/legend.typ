@@ -11,13 +11,13 @@
   replicas: (replica("R1", label:"replica 1"), replica("R2", below), "D"),
   events: (
     "R1": (
-      sync("t0", displacement: 0.5cm)[sync],
+      sync("t0", mark-displacement: 0.5cm)[sync],
       "event",
       gap,
       send("t1")[send],
     ),
     "R2": (
-      sync("t0", displacement: 0.5cm),
+      sync("t0", mark-displacement: 0.5cm),
       recv("t1")[receive],
       "A",
     ),

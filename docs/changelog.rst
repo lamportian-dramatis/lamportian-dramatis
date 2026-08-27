@@ -13,8 +13,27 @@ is always a deliberate edit.
 Added
 ~~~~~
 
-- ``fill`` on `event`:func:, `send`:func:, `recv`:func: and `sync`:func:, which paints the backdrop
-  under a point's label.
+- One API for all four kinds of point.  `event`:func:, `send`:func:, `recv`:func: and `sync`:func:
+  now take the same nine arguments -- ``body``, ``id``, ``label-position``, ``label-displacement``,
+  ``mark-displacement``, ``label-size``, ``label-width``, ``label-padding`` and ``label-backdrop`` --
+  and read them the same way.  The three that carry an arrow take ``label`` on top of those.  The
+  renames this cost are in the table under Changed, below.
+
+- Positional arguments are told apart by type on all four, so they may come in any order:
+  ``send("push", below, +50%)[pushed]`` is as good as naming each one.  Previously only an
+  `event`:func: read its arguments this way.
+
+- ``mark-displacement`` on `event`:func:, which nudges an event's dot off the column the layout
+  solved it into.  An event's dot could not be moved at all before.
+
+- ``label-width`` and ``id`` on `send`:func:, `recv`:func: and `sync`:func:.  An ``id`` given there
+  replaces the message name an `overlay <overlays>`:doc: would otherwise address the point by.
+
+- ``label`` on `recv`:func:, which labels the message arrow.  Either end of a message may carry it
+  now, and the first one given wins -- the rule a `sync`:func: already used.
+
+- ``label-padding`` and ``label-backdrop`` on all four, which set how far a label's backdrop reaches
+  past the label's own box and what it is painted with.
 
 - New locators:
 
@@ -28,17 +47,61 @@ Added
   - `pip-args(replica, id-or-index) <pip-args>`:locator:
   - `time(replica, id-or-index) <time>`:locator:
 
-- ``halo`` on `send`:func:, `recv`:func: and `sync`:func:.
-
 - ``messages`` on `lamport-diagram`:func:, holding `message`:func: items.
-
-- ``label-displacement`` on `send`:func:, `recv`:func: and `sync`:func:, which slides the point's own
-  label along the timeline.  It is the ``displacement`` of an `event`:func:; on these three
-  ``displacement`` moves the mark.
 
 
 Changed
 ~~~~~~~
+
+- Every argument that acts on a point's own label now says so, and ``displacement`` alone is no
+  longer a parameter of anything: it named the label on an `event`:func: and the mark on the other
+  three.
+
+  .. list-table::
+     :header-rows: 1
+
+     * - Was
+       - Is
+       - On
+     * - ``position``
+       - ``label-position``
+       - `event`:func:
+     * - ``displacement``
+       - ``label-displacement``
+       - `event`:func:
+     * - ``displacement``
+       - ``mark-displacement``
+       - `send`:func:, `recv`:func:, `sync`:func:
+     * - ``size``
+       - ``label-size``
+       - all four
+     * - ``width``
+       - ``label-width``
+       - `event`:func:
+     * - ``halo``
+       - ``label-padding``
+       - all four
+     * - ``fill``
+       - ``label-backdrop``
+       - all four
+
+- A `replica's <replica>`:func: point defaults move under ``defaults``, and take the name of the
+  point argument each one stands for: ``defaults: (label-position: .., label-size: ..,
+  label-displacement: .., first-label-displacement: ..)``.  The lane's own ``label`` is the name the
+  diagram prints for the lane, and grouping the defaults is what keeps the two from reading as one.
+  A side and a color are still positional on the lane itself.
+
+- A lane's ``label-size``, ``label-displacement`` and ``first-label-displacement`` defaults now reach
+  a `send`:func:, a `recv`:func: and a `sync`:func: too.  They reached local events only.  A lane
+  that opens on one of those three therefore takes the orientation's ``first-label-displacement``,
+  and its label no longer crowds the replica name.
+
+  ``label-position`` is the one default that still reaches local events only: the other three points
+  each have an arrow to stay clear of, and their label takes the side that clears it.
+
+- A displacement is ``0`` where it used to be ``none``: ``recv(.., mark-displacement: 0)`` says what
+  ``recv(.., displacement: none)`` said.  Both displacements now take the same four values --
+  ``auto``, ``0``, a ratio or a length.
 
 - Either end of a `sync`:func: is drawn with a dot inside its ring.  Previously, a `recv`:func: and
   a `sync`:func: had the same mark.
@@ -55,6 +118,9 @@ Removed
 - ``delay`` on `send`:func:.  A message no longer pushes its receive into a later column; reserve
   that column on the receiving lane with `idle(1) <idle>`:func: instead.
 
+- ``none`` as a displacement.  ``0`` is what says "do not move" now, on both displacements.
+
+
 .. _020--2026-08-23:
 
 0.2.0 -- 2026-08-23
@@ -65,8 +131,6 @@ A diagram is no longer bound to run left to right, and it can be drawn into.
 Nothing an 0.1.0 document says means anything different: a horizontal diagram renders byte for byte
 what 0.1.0 renders for it.  The two arguments whose defaults changed are spelled differently and
 resolve to the same numbers there.
-
-.. _added-1:
 
 Added
 ~~~~~
@@ -100,8 +164,6 @@ Added
 
 - A documentation site at `lamportian-dramatis.github.io
   <https://lamportian-dramatis.github.io/>`__, which the README now defers to for the reference.
-
-.. _changed-1:
 
 Changed
 ~~~~~~~

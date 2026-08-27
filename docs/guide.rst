@@ -42,7 +42,8 @@ There are two exceptions:
   next to the replica's name.
 
 - The default position of `send`:func:, `sync`:func:, and `recv`:func: is computed to be on the
-  other side of the incoming/outgoing arrow.
+  other side of the incoming/outgoing arrow.  A lane's own ``label-position`` default does not reach
+  those three; every other lane default does.
 
 .. _columns-solver:
 
@@ -70,8 +71,8 @@ the reference resolves to it and it numbers alongside the document's other figur
      caption: [`DeleteFile1` can be applied twice under concurrency],
      replicas: ("B", replica("A", below)),
      events: (
-       "B": ([AddFile1], send("push"), [DeleteFile1], recv("pull", size: 0.8em)[now duplicated]),
-       "A": (recv("push", displacement: none), [DeleteFile1], send("pull")),
+       "B": ([AddFile1], send("push"), [DeleteFile1], recv("pull", label-size: 0.8em)[now duplicated]),
+       "A": (recv("push", mark-displacement: 0), [DeleteFile1], send("pull")),
      ),
    ) <fig-duplicated-delete>
 

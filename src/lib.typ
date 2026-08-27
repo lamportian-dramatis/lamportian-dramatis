@@ -46,7 +46,7 @@
 /// the diagram does: the wider default belongs to whichever axis lies horizontally, so turning a
 /// diagram on its side turns the two over with it.
 ///
-/// `first-displacement` is how far a lane's opening label slides off its own dot, as a ratio of the
+/// `first-label-displacement` is how far a lane's opening label slides off its own dot, as a ratio of the
 /// label's extent along the timeline.  A horizontal lane wants the nudge: its replica name sits
 /// immediately to the label's left, and centring the label on the first dot reads as if the name and
 /// the label belonged together.  A vertical lane does not: the name sits before the lane *in time*
@@ -54,7 +54,7 @@
 /// line's height would be too small to see even if they were.
 #let _orientations = (
   rightwards: (
-    first-displacement: 20%,
+    first-label-displacement: 20%,
     col-gap: 2.0,
     row-gap: 1.5,
     time: (1, 0),
@@ -65,7 +65,7 @@
     name-anchor: "east",
   ),
   leftwards: (
-    first-displacement: 20%,
+    first-label-displacement: 20%,
     col-gap: 2.0,
     row-gap: 1.5,
     time: (-1, 0),
@@ -76,7 +76,7 @@
     name-anchor: "west",
   ),
   downwards: (
-    first-displacement: 0%,
+    first-label-displacement: 0%,
     col-gap: 1.5,
     row-gap: 2.4,
     time: (0, -1),
@@ -87,7 +87,7 @@
     name-anchor: "south",
   ),
   upwards: (
-    first-displacement: 0%,
+    first-label-displacement: 0%,
     col-gap: 1.5,
     row-gap: 2.4,
     time: (0, 1),
@@ -129,138 +129,112 @@
 
 /// Reads the optional text size of a point's own label, which must be a length.  Accepts only
 /// `none` or a length.
-#let _point-size(args) = {
-  let size = args.named().at("size", default: none)
+#let _point-label-size(args) = {
+  let size = args.named().at("label-size", default: none)
   assert(
     size == none or type(size) == length,
-    message: "lamport-diagram: `size` must be a length, as in `size: 0.8em`",
+    message: "lamport-diagram: `label-size` must be a length, as in `label-size: 0.8em`",
   )
   size
 }
 
-/// Reads the optional halo of a point's own label.  Accepts only none, `auto`, or a length.
-#let _point-halo(args) = {
-  let halo = args.named().at("halo", default: auto)
+/// Reads the optional width a point's own label is wrapped to, which must be a length.
+#let _point-label-width(args) = {
+  let width = args.named().at("label-width", default: none)
   assert(
-    halo == auto or halo == none or type(halo) == length,
-    message: "lamport-diagram: `halo` must be `auto`, `none` or a length, as in `halo: 2mm`",
+    width == none or type(width) == length,
+    message: "lamport-diagram: `label-width` must be a length, as in `label-width: 2.5cm`",
   )
-  halo
+  width
+}
+
+/// Reads the optional padding of a point's own label: how far the label's backdrop reaches past the
+/// label's own box.  Accepts only `none`, `auto`, or a length.
+#let _point-label-padding(args) = {
+  let padding = args.named().at("label-padding", default: auto)
+  assert(
+    padding == auto or padding == none or type(padding) == length,
+    message: "lamport-diagram: `label-padding` must be `auto`, `none` or a length, as in "
+      + "`label-padding: 2mm`",
+  )
+  padding
 }
 
 /// Reads the optional paint of a point's own label backdrop.  Accepts only `none`, `auto`, or a
 /// paint (colors, gradients or tilings).
-#let _point-fill(args) = {
-  let fill = args.named().at("fill", default: auto)
+#let _point-label-backdrop(args) = {
+  let backdrop = args.named().at("label-backdrop", default: auto)
   assert(
-    fill == auto or fill == none or type(fill) in (color, gradient, tiling),
-    message: "lamport-diagram: `fill` must be `auto`, `none` or a paint, as in `fill: yellow`",
+    backdrop == auto or backdrop == none or type(backdrop) in (color, gradient, tiling),
+    message: "lamport-diagram: `label-backdrop` must be `auto`, `none` or a paint, as in "
+      + "`label-backdrop: yellow`",
   )
-  fill
+  backdrop
 }
 
-/// Whether a value can serve as a label displacement: `auto` to inherit one, `0` or `0%` to sit
-/// centred, a ratio of the label's own width, or an exact length.
+/// Reads the optional id a point answers to, which must be a string.  It is what an overlay names
+/// the point by, in place of the index the point sits at on its lane.
+#let _point-id(args) = {
+  let id = args.named().at("id", default: none)
+  assert(
+    id == none or type(id) == str,
+    message: "lamport-diagram: `id` must be a string, as in `id: \"diverged\"`",
+  )
+  id
+}
+
+/// Whether a value can serve as a displacement: `auto` to inherit one, `0` or `0%` to stay put, a
+/// ratio, or an exact length.  Both displacements a point takes accept the same four.
 #let _is-displacement(value) = value == auto or value == 0 or type(value) in (length, ratio)
 
-/// Reads the optional `label-displacement` of a `send`, `recv` or `sync`: how far that point's own
-/// label slides along the timeline, out of being centred on its mark.  It is the `displacement` of an
-/// `event` under the name that says which of the two it moves, these three points spending
-/// `displacement` on the mark itself.
-#let _point-label-displacement(args, fn) = {
-  let value = args.named().at("label-displacement", default: auto)
+/// Reads the optional `mark-displacement` of a point: how far the mark slides off the column the
+/// layout solved it into.  A ratio is taken against the column gap.  It is a drawing offset, and the
+/// column solver knows nothing about it.
+#let _point-mark-displacement(args, fn) = {
+  let value = args.named().at("mark-displacement", default: auto)
   assert(
     _is-displacement(value),
-    message: "lamport-diagram: " + fn + " `label-displacement` must be a ratio, a length or `0`",
+    message: "lamport-diagram: " + fn + " `mark-displacement` must be a ratio, a length or `0`",
   )
   value
 }
 
-/// A local event on a replica's timeline.
-///
-/// Its body (content or plain string ) is the label shown in the diagram.
-///
-/// `position` puts the label on one side of the timeline: `above` or `below` on a horizontal
-/// diagram, `left` or `right` on a vertical one, with `size` setting its text size.  Both fall back
-/// on the lane's own defaults -- see `replica` -- and then on the orientation's default side, at
-/// the diagram's text size.  A side the orientation has no room for is dropped and ignored.
-///
-/// `displacement` slides the label along the timeline, out of being centred on its own dot: a ratio is
-/// taken against the label's own extent along that timeline -- its width when the timelines are rows,
-/// its height when they are columns -- so `+50%` leaves the label's trailing edge over the dot and
-/// `-50%` its leading edge, while a length is an exact offset and `0` (or `0%`) centres it.  Left to
-/// itself it is `auto`: the lane's default, and failing that centred -- except for a lane's opening
-/// event, which is nudged forward in time by the orientation's `first-displacement` so it does not crowd
-/// the replica name just before it.  The dot itself never moves -- it is the event's place in time,
-/// which the layout solves for.
-///
-/// `width` wraps the label to a fixed width instead of letting it run along the timeline on one line,
-/// which is what keeps a long label from crowding its neighbors.  It must be named: a bare length is
-/// read as a `displacement`, since that is the far commoner one to reach for.  The box is centred on
-/// the mark like any other label, and its contents are left to the caller -- wrap the body in
-/// `align(center, ..)` if centred lines read better than the ragged right edge.
-///
-/// `halo` is how far the label's backdrop reaches past the label's own box -- the same idea as the
-/// disc under a mark, and what lets a label sit over an arrow crossing its lane without the arrow
-/// crowding the glyphs.  `auto` takes `_label-halo`, a length sets an exact reach, and `none` drops
-/// the backdrop altogether, for a label that should let whatever is behind it show through.
-///
-/// `fill` is what that backdrop is painted with: white by default, which is what breaks an arrow
-/// behind the label, and any paint instead -- a wash an overlay also uses, say, so the label reads as
-/// part of it rather than as a hole punched in it.  `none` leaves the backdrop unpainted, which is
-/// `halo: none` with the label's box kept: nothing shows the reach, but a displacement still
-/// measures against it.  A translucent paint hides no more than it says, so an arrow behind a washed
-/// label still shows through it.
-///
-/// Arguments are told apart by type, so they may come in any order and every one of them is
-/// optional: `event(below, +50%)[Event1]` and `event(+50%, below, "Event1")` are the same event.
-/// For the common case of a label and nothing else, bare content or a bare string in an `events`
-/// array is shorthand, so `[Event1]`, `"Event1"` and `event[Event1]` are the same event too.
-#let event(..args) = {
+/// The three arguments every point takes either positionally or by name: the label, the side of the
+/// timeline it sits on, and how far it slides along that timeline.  Positional arguments are told
+/// apart by type, so they may come in any order.  A named argument outside `allowed` is a
+/// misspelling, which a `..args` sink would otherwise swallow in silence.
+#let _point-args(fn, args, allowed) = {
   for key in args.named().keys() {
-    assert(
-      key in ("position", "displacement", "body", "size", "width", "halo", "fill", "id"),
-      message: "lamport-diagram: event has no `" + key + "` parameter",
-    )
+    assert(key in allowed, message: "lamport-diagram: " + fn + " has no `" + key + "` parameter")
   }
-  let width = args.named().at("width", default: none)
-  assert(
-    width == none or type(width) == length,
-    message: "lamport-diagram: event `width` must be a length, as in `width: 2.5cm`",
-  )
-  let id = args.named().at("id", default: none)
-  assert(
-    id == none or type(id) == str,
-    message: "lamport-diagram: event `id` must be a string, as in `id: \"diverged\"`",
-  )
-  let position = args.named().at("position", default: auto)
-  let displacement = args.named().at("displacement", default: auto)
+  let position = args.named().at("label-position", default: auto)
+  let displacement = args.named().at("label-displacement", default: auto)
   let body = args.named().at("body", default: none)
   let given = ()
   for arg in args.pos() {
     let slot = if type(arg) == alignment {
-      "position"
+      "label-position"
     } else if type(arg) in (length, ratio) {
-      "displacement"
+      "label-displacement"
     } else if type(arg) == int {
       // Zero is the one displacement that carries no unit and still says what it means; any other
       // bare number is a missing unit, not a label.
       assert(
         arg == 0,
-        message: "lamport-diagram: an event displacement needs a unit -- `0`, `0%`, `+50%` or `2mm`",
+        message: "lamport-diagram: a label displacement needs a unit -- `0`, `0%`, `+50%` or `2mm`",
       )
-      "displacement"
+      "label-displacement"
     } else {
       "body"
     }
     assert(
       not (slot in given),
-      message: "lamport-diagram: event was given two " + slot + " arguments",
+      message: "lamport-diagram: " + fn + " was given two " + slot + " arguments",
     )
     given.push(slot)
-    if slot == "position" {
+    if slot == "label-position" {
       position = arg
-    } else if slot == "displacement" {
+    } else if slot == "label-displacement" {
       displacement = arg
     } else {
       body = arg
@@ -270,123 +244,142 @@
   // that narrows these four to two -- and warns about the ones it drops -- happens there.
   assert(
     position == auto or position in _sides,
-    message: "lamport-diagram: event `position` must be `above`, `below`, `left` or `right`",
+    message: "lamport-diagram: "
+      + fn
+      + " `label-position` must be `above`, `below`, `left` or `right`",
   )
   assert(
     _is-displacement(displacement),
-    message: "lamport-diagram: event `displacement` must be a ratio, a length or `0`",
+    message: "lamport-diagram: " + fn + " `label-displacement` must be a ratio, a length or `0`",
   )
-  (
-    kind: "event",
-    id: id,
-    body: body,
-    label-position: position,
-    size: _point-size(args),
-    width: width,
-    halo: _point-halo(args),
-    fill: _point-fill(args),
-    label-displacement: displacement,
-  )
+  (body: body, label-position: position, label-displacement: displacement)
 }
 
-/// Reads the optional timeline label of a `send`/`recv`, which may be given either positionally
-/// (including as a trailing content block) or as `body`, and rejects misspelled named arguments --
-/// which a `..args` sink would otherwise swallow in silence.
-#let _point-body(args, fn, allowed) = {
-  let positional = args.pos()
-  assert(
-    positional.len() <= 1,
-    message: "lamport-diagram: " + fn + " takes a message name and at most one label",
-  )
-  for key in args.named().keys() {
-    assert(key in allowed, message: "lamport-diagram: " + fn + " has no `" + key + "` parameter")
-  }
-  if positional.len() == 1 { positional.at(0) } else { args.named().at("body", default: none) }
-}
+/// The named arguments every point takes.  The three points that carry an arrow take `label` on top
+/// of these, for the arrow itself.
+#let _point-parameters = (
+  "body",
+  "id",
+  "label-position",
+  "label-displacement",
+  "mark-displacement",
+  "label-size",
+  "label-width",
+  "label-padding",
+  "label-backdrop",
+)
 
-/// The point where the message `name` leaves this replica.  An optional label for the point goes
-/// positionally -- `send("push")[pushed]` -- or as `body`, with `size` setting its text size; `label`
-/// instead labels the arrow itself, and keeps its own styling.  `label-position` forces the side the
-/// point's label sits on, in place of the side the drawing picks to clear the message arrow.
-///
-/// `displacement` nudges the point off the column it is solved into, exactly as it does on a `recv`,
-/// except that it defaults to `none` -- a send sits on its own column unless you say otherwise, since
-/// it is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever a
-/// straight run across the lanes would otherwise cross, or to separate two sends the solver put in
-/// one column.
-///
-/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
-/// past the label's own box, and what it is painted with.
-#let send(name, ..args) = {
-  let displacement = args.named().at("displacement", default: none)
+/// One point of any of the four kinds, read out of `args`.  Every kind takes the same arguments and
+/// reads them the same way, so this is the whole of an `event` and all but the name and the arrow
+/// label of a `send`, a `recv` or a `sync`.
+#let _point(kind, args, allowed) = (
+  kind: kind,
+  id: _point-id(args),
+  label-size: _point-label-size(args),
+  label-width: _point-label-width(args),
+  label-padding: _point-label-padding(args),
+  label-backdrop: _point-label-backdrop(args),
+  mark-displacement: _point-mark-displacement(args, kind),
+  .._point-args(kind, args, allowed),
+)
+
+/// One point that carries an arrow.  `name` pairs it with the point at the other end of that arrow,
+/// and `label` labels the arrow rather than the point.
+#let _arrow-point(kind, name, args) = {
   assert(
-    displacement == none or type(displacement) in (length, ratio),
-    message: "lamport-diagram: send `displacement` must be `none`, a length or a ratio",
+    type(name) == str,
+    message: "lamport-diagram: a "
+      + kind
+      + " takes the message name first, as in `"
+      + kind
+      + "(\"push\")`",
   )
   (
-    kind: "send",
+    .._point(kind, args, _point-parameters + ("label",)),
     name: name,
-    body: _point-body(
-      args,
-      "send",
-      (
-        "body",
-        "size",
-        "label",
-        "label-position",
-        "label-displacement",
-        "displacement",
-        "halo",
-        "fill",
-      ),
-    ),
-    size: _point-size(args),
-    halo: _point-halo(args),
-    fill: _point-fill(args),
     label: args.named().at("label", default: none),
-    label-position: args.named().at("label-position", default: auto),
-    label-displacement: _point-label-displacement(args, "send"),
-    displacement: displacement,
   )
 }
 
-/// The point where the message `name` is applied on this replica.  An optional label for the point
-/// goes positionally -- `recv("pull")[`DeleteFile1` is now duplicated]` -- or as `body`, with `size`
-/// setting its text size.  Exactly one `send` and one `recv` must exist for each name.
+/// A local event on a replica's timeline.
 ///
-/// `displacement` nudges the point off the column it is solved into, in either direction: `1cm` by
-/// default, which is how far past its `send` in time the point lands whenever nothing on its own
-/// replica pushes it further, and enough to lean the arrow forward.  `none` leaves it on its column,
-/// drawing an arrow straight across the lanes when the receiving replica has nothing else competing
-/// for that column.  A ratio
-/// (`50%`) is taken against the column gap.  The nudge is a drawing offset the column solver knows
-/// nothing about, so a negative one wide enough to put a receive visually behind its own send does not
-/// trip the causal-cycle check.
+/// Its body (content or a plain string) is the label shown in the diagram.
 ///
-/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
-/// past the label's own box, and what it is painted with.
-#let recv(name, ..args) = {
-  let displacement = args.named().at("displacement", default: 1cm)
-  assert(
-    displacement == none or type(displacement) in (length, ratio),
-    message: "lamport-diagram: recv `displacement` must be `none`, a length or a ratio",
-  )
-  (
-    kind: "recv",
-    name: name,
-    body: _point-body(
-      args,
-      "recv",
-      ("body", "size", "label-position", "label-displacement", "displacement", "halo", "fill"),
-    ),
-    size: _point-size(args),
-    halo: _point-halo(args),
-    fill: _point-fill(args),
-    label-position: args.named().at("label-position", default: auto),
-    label-displacement: _point-label-displacement(args, "recv"),
-    displacement: displacement,
-  )
-}
+/// Every one of the four kinds of point takes the same arguments and reads them the same way.  What
+/// tells them apart is the arrow: an event carries none, so it takes no message name and no `label`.
+///
+/// `label-position` puts the label on one side of the timeline: `above` or `below` on a horizontal
+/// diagram, `left` or `right` on a vertical one, with `label-size` setting its text size.  Both fall
+/// back on the lane's own defaults -- see `replica` -- and then on the orientation's default side, at
+/// the diagram's text size.  A side the orientation has no room for is dropped and ignored.
+///
+/// `label-displacement` slides the label along the timeline, out of being centred on its own dot: a
+/// ratio is taken against the label's own extent along that timeline -- its width when the timelines
+/// are rows, its height when they are columns -- so `+50%` leaves the label's trailing edge over the
+/// dot and `-50%` its leading edge, while a length is an exact offset and `0` (or `0%`) centres it.
+/// Left to itself it is `auto`: the lane's default, and failing that centred -- except for a lane's
+/// opening point, which is nudged forward in time by the orientation's `first-label-displacement` so
+/// it does not crowd the replica name just before it.
+///
+/// `mark-displacement` slides the mark itself off the column the layout solved it into, which is the
+/// one thing that moves the point rather than its label.  A ratio is taken against the column gap, a
+/// length is an exact offset, and `0` leaves the mark on its column.  It is a drawing offset: it
+/// reserves no room, so it never moves what follows on the lane, and it says nothing about order.
+///
+/// `label-width` wraps the label to a fixed width instead of letting it run along the timeline on one
+/// line, which is what keeps a long label from crowding its neighbors.  It must be named: a bare
+/// length is read as a `label-displacement`, since that is the far commoner one to reach for.  The
+/// box is centred on the mark like any other label, and its contents are left to the caller -- wrap
+/// the body in `align(center, ..)` if centred lines read better than the ragged right edge.
+///
+/// `label-padding` is how far the label's backdrop reaches past the label's own box -- the same idea
+/// as the disc under a mark, and what lets a label sit over an arrow crossing its lane without the
+/// arrow crowding the glyphs.  `auto` takes `_label-padding`, a length sets an exact reach, and
+/// `none` drops the backdrop altogether, for a label that should let whatever is behind it show
+/// through.
+///
+/// `label-backdrop` is what that backdrop is painted with: white by default, which is what breaks an
+/// arrow behind the label, and any paint instead -- a wash an overlay also uses, say, so the label
+/// reads as part of it rather than as a hole punched in it.  `none` leaves the backdrop unpainted,
+/// which is `label-padding: none` with the label's box kept: nothing shows the reach, but a
+/// displacement still measures against it.  A translucent paint hides no more than it says, so an
+/// arrow behind a washed label still shows through it.
+///
+/// `id` is what an overlay names this point by, in place of the index it sits at on its lane.
+///
+/// Positional arguments are told apart by type, so they may come in any order and every one of them
+/// is optional: `event(below, +50%)[Event1]` and `event(+50%, below, "Event1")` are the same event.
+/// For the common case of a label and nothing else, bare content or a bare string in an `events`
+/// array is shorthand, so `[Event1]`, `"Event1"` and `event[Event1]` are the same event too.
+#let event(..args) = _point("event", args, _point-parameters)
+
+/// The point where the message `name` leaves this replica.  It takes the arguments every point takes
+/// -- see `event` -- and one more: `label`, which labels the arrow itself rather than the point, and
+/// keeps its own styling.  Either end of a message may carry it, and the first one given wins.
+///
+/// The label of a send, a recv or a sync sits on the side of the timeline that its own arrow does not
+/// occupy, so an arrow running straight across the lanes never runs through its own endpoint labels.
+/// A `label-position` given here replaces that side.  The lane's default side reaches its local
+/// events only: clearing the arrow is the better rule, and it is the drawing's to make.
+///
+/// `mark-displacement` defaults to `0` here: a send sits on its own column unless you say otherwise,
+/// since it is the receive that leans a message forward.  Reach for it to tilt an arrow away from
+/// whatever a straight run across the lanes would otherwise cross, or to separate two sends the
+/// solver put in one column.
+#let send(name, ..args) = _arrow-point("send", name, args)
+
+/// The point where the message `name` is applied on this replica.  Exactly one `send` and one `recv`
+/// must exist for each name.  It takes the arguments every point takes -- see `event` -- and `label`,
+/// which labels the arrow itself; either end of a message may carry it, and the first one given wins.
+///
+/// `mark-displacement` is the one argument whose default differs from the other three kinds: `1cm`,
+/// which is how far past its `send` in time the point lands whenever nothing on its own replica
+/// pushes it further, and enough to lean the arrow forward.  `mark-displacement: 0` leaves it on its
+/// column, drawing an arrow straight across the lanes when the receiving replica has nothing else
+/// competing for that column.  The nudge is a drawing offset the column solver knows nothing about,
+/// so a negative one wide enough to put a receive visually behind its own send does not trip the
+/// causal-cycle check.
+#let recv(name, ..args) = _arrow-point("recv", name, args)
 
 /// One end of a two-way exchange named `name`.  In one round trip each side gives the other the
 /// events it lacks, so both ends come out of the exchange holding the same events.  This is what the
@@ -395,53 +388,18 @@
 /// its own.
 ///
 /// Exactly two `sync` points must carry the same name, and they must sit on two different replicas.
-/// The pair is drawn as one arrow with a head at each end, and each end as a hollow mark with a dot of
-/// ink inside it, narrower than the timeline it sits on: neither side of an exchange is the sender, so neither is drawn smaller the way a `send`
-/// is, and the inner dot is what tells a sync's end from a `recv`.  The two ends share a column:
-/// neither side can finish the exchange before the other one starts it.  Holding the same events is not the
-/// same as holding the same state, so each end takes its own label.
+/// The pair is drawn as one arrow with a head at each end, and each end as a hollow mark with a dot
+/// of ink inside it, narrower than the timeline it sits on: neither side of an exchange is the
+/// sender, so neither is drawn smaller the way a `send` is, and the inner dot is what tells a sync's
+/// end from a `recv`.  The two ends share a column: neither side can finish the exchange before the
+/// other one starts it.  Holding the same events is not the same as holding the same state, so each
+/// end takes its own label.
 ///
-/// An optional label for the point goes positionally -- `sync("push")[rolled back]` -- or as `body`,
-/// with `size` setting its text size; `label` instead labels the arrow itself, and `label-position`
-/// forces the side the point's label sits on.  `displacement` nudges this end off the shared column, which tilts
-/// the arrow away from whatever a straight run across the lanes would otherwise cross; it is a
-/// drawing offset
-/// and says nothing about the order.
-///
-/// `halo` and `fill` are the label's backdrop, exactly as they are on an `event`: how far it reaches
-/// past the label's own box, and what it is painted with.
-#let sync(name, ..args) = {
-  let displacement = args.named().at("displacement", default: none)
-  assert(
-    displacement == none or type(displacement) in (length, ratio),
-    message: "lamport-diagram: sync `displacement` must be `none`, a length or a ratio",
-  )
-  (
-    kind: "sync",
-    name: name,
-    body: _point-body(
-      args,
-      "sync",
-      (
-        "body",
-        "size",
-        "label-position",
-        "label-displacement",
-        "displacement",
-        "label",
-        "halo",
-        "fill",
-      ),
-    ),
-    size: _point-size(args),
-    halo: _point-halo(args),
-    fill: _point-fill(args),
-    label: args.named().at("label", default: none),
-    label-position: args.named().at("label-position", default: auto),
-    label-displacement: _point-label-displacement(args, "sync"),
-    displacement: displacement,
-  )
-}
+/// It takes the arguments every point takes -- see `event` -- and `label`, which labels the arrow
+/// itself; either end may carry it, and the first one given wins.  `mark-displacement` nudges this
+/// end off the shared column, which tilts the arrow away from whatever a straight run across the
+/// lanes would otherwise cross; it is a drawing offset and says nothing about the order.
+#let sync(name, ..args) = _arrow-point("sync", name, args)
 
 /// An arrow between two points the diagram already holds, and the note that goes beside it.
 ///
@@ -581,23 +539,25 @@
   } else {
     (kind: "event", body: it)
   }
+  let name = d.at("name", default: none)
+  let id = d.at("id", default: none)
   (
     kind: d.kind,
     body: d.at("body", default: none),
-    size: d.at("size", default: none),
-    width: d.at("width", default: none),
-    halo: d.at("halo", default: auto),
-    fill: d.at("fill", default: auto),
+    label-size: d.at("label-size", default: none),
+    label-width: d.at("label-width", default: none),
+    label-padding: d.at("label-padding", default: auto),
+    label-backdrop: d.at("label-backdrop", default: auto),
     label: d.at("label", default: none),
-    name: d.at("name", default: none),
-    // What an overlay addresses this point by.  A send, recv or sync is known by the message name
-    // that pairs its two ends; an event has no such name, so it takes one of its own or none at all.
-    id: d.at("id", default: d.at("name", default: none)),
+    name: name,
+    // What an overlay addresses this point by.  A send, recv or sync answers to the message name
+    // that pairs its two ends, unless it was given an id of its own; an event has only its own.
+    id: if id == none { name } else { id },
     label-position: d.at("label-position", default: auto),
     // How many columns this item takes before the next one on its lane may start.  Everything takes
     // one; `idle` is what takes more.
     advance: d.at("advance", default: 1),
-    displacement: d.at("displacement", default: none),
+    mark-displacement: d.at("mark-displacement", default: auto),
     label-displacement: d.at("label-displacement", default: auto),
     span: d.at("span", default: "medium"),
   )
@@ -606,37 +566,50 @@
 /// How far a label's backdrop reaches past the label's own box by default, in canvas centimeters.
 /// It matches the reach of the disc under a mark, so a label and a dot break an arrow behind them by
 /// the same amount and the two read as sitting on one plane.
-#let _label-halo = 0.07
+#let _label-padding = 0.07
 
-/// Settles each event against the defaults of the lane it sits on, and then the diagram's own: an
-/// argument given on the event itself always wins, and only a lane's opening event takes
-/// `first-displacement`.  Items that are not events pass through -- a message label's side is the
-/// drawing's business, since it has an arrow to stay clear of, not a lane default's.
-#let _resolve-defaults(row, lane, first-displacement) = {
+/// How far a `recv` leans off its own column by default, which is what makes an arrow read as
+/// arriving after it left.  Every other kind of point sits on the column the layout solved it into.
+#let _recv-displacement = 1cm
+
+/// Settles each point against the defaults of the lane it sits on, and then the diagram's own: an
+/// argument given on the point itself always wins, and only a lane's opening point takes
+/// `first-label-displacement`.
+///
+/// The lane's `label-position` reaches its local events only.  A send, a recv and a sync each have an
+/// arrow to stay clear of, and the side that clears it is a better default than a lane's blanket one;
+/// the drawing picks that side, so their `label-position` is left `auto` for it to answer.
+#let _resolve-defaults(row, lane, first-label-displacement) = {
   row.enumerate().map(((ii, it)) => {
-    if it.kind != "event" {
-      // A point that is not an event keeps the displacement it was given, and is centred on its own
-      // mark when it was given none.  A lane's defaults still reach events only.
-      (
-        ..it,
-        label-displacement: if it.label-displacement == auto { 0% } else { it.label-displacement },
-      )
-    } else {
-      let inherited = if ii == 0 { lane.first-displacement } else { lane.displacement }
-      let fallback = if ii == 0 { first-displacement } else { 0% }
-      (
-        ..it,
-        label-position: if it.label-position == auto { lane.position } else { it.label-position },
-        size: if it.size == none { lane.size } else { it.size },
-        label-displacement: if it.label-displacement != auto {
-          it.label-displacement
-        } else if inherited == auto {
-          fallback
-        } else {
-          inherited
-        },
-      )
-    }
+    let inherited = if ii == 0 { lane.first-label-displacement } else { lane.label-displacement }
+    let fallback = if ii == 0 { first-label-displacement } else { 0% }
+    (
+      ..it,
+      label-position: if it.label-position != auto {
+        it.label-position
+      } else if it.kind == "event" {
+        lane.label-position
+      } else {
+        auto
+      },
+      label-size: if it.label-size == none { lane.label-size } else { it.label-size },
+      label-displacement: if it.label-displacement != auto {
+        it.label-displacement
+      } else if inherited == auto {
+        fallback
+      } else {
+        inherited
+      },
+      // A lane holds no default for this one: it moves the mark, not the label, and what a mark is
+      // worth leaning off its column is the message's business rather than the lane's.
+      mark-displacement: if it.mark-displacement != auto {
+        it.mark-displacement
+      } else if it.kind == "recv" {
+        _recv-displacement
+      } else {
+        0
+      },
+    )
   })
 }
 
@@ -653,8 +626,8 @@
   let legal = _orientations.at(orientation).sides
   let out-lanes = ()
   for lane in lanes {
-    if lane.position != auto and not legal.contains(lane.position) {
-      out-lanes.push((..lane, position: auto))
+    if lane.label-position != auto and not legal.contains(lane.label-position) {
+      out-lanes.push((..lane, label-position: auto))
     } else {
       out-lanes.push(lane)
     }
@@ -670,66 +643,110 @@
   (lanes: out-lanes, rows: out-rows)
 }
 
-/// A replica lane, and the defaults the local events on it fall back on.
+/// The keys a lane's `defaults` may hold.  Each is the point argument of the same name, and each is
+/// still overridable point by point.
+#let _lane-defaults = (
+  "label-position",
+  "label-size",
+  "label-displacement",
+  "first-label-displacement",
+)
+
+/// Reads a lane's `defaults`, and rejects a misspelled key -- which would otherwise be dropped in
+/// silence, taking the default with it.
+#let _lane-default-values(defaults) = {
+  assert(
+    type(defaults) == dictionary,
+    message: "lamport-diagram: a replica's `defaults` is a dictionary of "
+      + _lane-defaults.join(", "),
+  )
+  for key in defaults.keys() {
+    assert(
+      key in _lane-defaults,
+      message: "lamport-diagram: a replica's `defaults` has no `" + key + "` key",
+    )
+  }
+  let position = defaults.at("label-position", default: auto)
+  let size = defaults.at("label-size", default: none)
+  let displacement = defaults.at("label-displacement", default: auto)
+  let first-displacement = defaults.at("first-label-displacement", default: auto)
+  assert(
+    position == auto or position in _sides,
+    message: "lamport-diagram: a replica's `label-position` must be `above`, `below`, `left` or "
+      + "`right`",
+  )
+  assert(
+    size == none or type(size) == length,
+    message: "lamport-diagram: a replica's `label-size` must be a length, as in `label-size: 0.8em`",
+  )
+  assert(
+    _is-displacement(displacement) and _is-displacement(first-displacement),
+    message: "lamport-diagram: a replica's displacements must be a ratio, a length or `0`",
+  )
+  (
+    label-position: position,
+    label-size: size,
+    label-displacement: displacement,
+    first-label-displacement: first-displacement,
+  )
+}
+
+/// A replica lane, and the defaults the points on it fall back on.
 ///
-/// `name` is the id that the `events` dictionary keys on; `label` is what the diagram prints for
-/// the lane and `color` is its color, either of which may also be given positionally -- colors are
-/// told apart by type.
+/// `name` is the id that the `events` dictionary keys on; `label` is what the diagram prints for the
+/// lane and `color` is its color, either of which may also be given positionally -- colors are told
+/// apart by type.
 ///
-/// The rest are defaults for this lane's events, each still overridable event by event: `position`
-/// (`above`/`below` on a horizontal diagram, `left`/`right` on a vertical one, positional too) is the
-/// side of the timeline their labels sit on, `size` their
-/// text size, `displacement` how far they slide off their own dot, and `first-displacement` the same
-/// for the lane's opening event, the one that would otherwise crowd the replica name.  None of these
-/// reach a `send` or `recv` label: those keep their own arguments, and their side is chosen to stay
-/// clear of the message arrow.
-#let replica(name, ..defaults) = {
+/// `defaults` holds the defaults for the points on this lane, keyed by the point argument each one
+/// stands for and each still overridable point by point.  `label-position` (`above`/`below` on a
+/// horizontal diagram, `left`/`right` on a vertical one, and positional on the lane too) is the side
+/// of the timeline their labels sit on, `label-size` their text size, `label-displacement` how far
+/// they slide off their own dot, and `first-label-displacement` the same for the lane's opening
+/// point, the one that would otherwise crowd the replica name.
+///
+/// The keys are the point arguments and nothing else, which is what keeps them clear of `label`: the
+/// lane's `label` is the name the diagram prints for the lane, and `defaults.label-size` is the text
+/// size of the points' labels, not of that name.
+///
+/// `label-position` reaches this lane's local events only.  A `send`, a `recv` and a `sync` each have
+/// an arrow to stay clear of, and their label takes the side that clears it; the other three defaults
+/// reach all four kinds of point.
+#let replica(name, ..args) = {
   assert(
     type(name) == str,
     message: "lamport-diagram: a replica's name is the id its `events` are keyed on",
   )
-  for key in defaults.named().keys() {
+  for key in args.named().keys() {
     assert(
-      key in ("label", "color", "position", "size", "displacement", "first-displacement"),
+      key in ("label", "color", "defaults"),
       message: "lamport-diagram: replica has no `" + key + "` parameter",
     )
   }
-  let position = defaults.named().at("position", default: auto)
-  let lane-color = defaults.named().at("color", default: auto)
-  let lane-label = defaults.named().at("label", default: auto)
-  for arg in defaults.pos() {
+  let lane-color = args.named().at("color", default: auto)
+  let lane-label = args.named().at("label", default: auto)
+  let defaults = _lane-default-values(args.named().at("defaults", default: (:)))
+  for arg in args.pos() {
     if type(arg) == alignment {
-      position = arg
+      defaults = (..defaults, label-position: arg)
     } else if type(arg) == color {
       lane-color = arg
     } else {
       panic(
         "lamport-diagram: a replica takes only a side or a color positionally -- give `label`, "
-          + "`size`, `displacement` and `first-displacement` by name",
+          + "`color` and `defaults` by name",
       )
     }
   }
-  let displacement = defaults.named().at("displacement", default: auto)
-  let first-displacement = defaults.named().at("first-displacement", default: auto)
   assert(
-    position == auto or position in _sides,
-    message: "lamport-diagram: replica `position` must be `above`, `below`, `left` or `right`",
+    defaults.label-position == auto or defaults.label-position in _sides,
+    message: "lamport-diagram: replica `label-position` must be `above`, `below`, `left` or `right`",
   )
-  assert(
-    _is-displacement(displacement) and _is-displacement(first-displacement),
-    message: "lamport-diagram: replica displacements must be a ratio, a length or `0`",
-  )
-  (
-    id: name,
-    label: lane-label,
-    color: lane-color,
-    position: position,
-    size: _point-size(defaults),
-    displacement: displacement,
-    first-displacement: first-displacement,
-  )
+  (id: name, label: lane-label, color: lane-color, defaults: defaults)
 }
 
+/// Flattens a lane down to what the drawing reads: the lane's own presentation and its defaults, side
+/// by side.  A lane given as a bare dictionary reaches here too, so the defaults are checked whether
+/// `replica` built them or the caller wrote them out.
 #let _replica(spec, index) = {
   let d = if type(spec) == dictionary { spec } else { (id: spec) }
   let id = d.at("id")
@@ -743,10 +760,7 @@
     } else {
       lane-color
     },
-    position: d.at("position", default: auto),
-    size: d.at("size", default: none),
-    displacement: d.at("displacement", default: auto),
-    first-displacement: d.at("first-displacement", default: auto),
+    .._lane-default-values(d.at("defaults", default: (:))),
   )
 }
 
@@ -787,6 +801,7 @@
 }
 
 /// Pairs every `send` with its `recv`, as `name => (send: (row, i), recv: (row, i), label: any)`.
+/// An arrow label may be given on either end; the first one given wins, exactly as on a `sync`.
 #let _messages(rows) = {
   let msgs = (:)
   for (ri, row) in rows.enumerate() {
@@ -801,12 +816,13 @@
           m.at(it.kind) == none,
           message: "lamport-diagram: message '" + it.name + "' has more than one " + it.kind,
         )
+        let label = if m.label == none { it.label } else { m.label }
         msgs.insert(
           it.name,
           if it.kind == "send" {
-            (..m, send: (ri, ii), label: it.label)
+            (..m, send: (ri, ii), label: label)
           } else {
-            (..m, recv: (ri, ii))
+            (..m, recv: (ri, ii), label: label)
           },
         )
       }
@@ -872,9 +888,9 @@
   cols
 }
 
-/// The ids an overlay may address a lane's points by, checked for collisions.  A `send`, `recv` or
-/// `sync` is known by the message name that pairs its ends; an `event` by the `id` it was given, and
-/// most events are given none.  Two points on one lane sharing an id would make `mark("A", "x")`
+/// The ids an overlay may address a lane's points by, checked for collisions.  Every point takes an
+/// `id`; a `send`, a `recv` and a `sync` fall back on the message name that pairs their ends, and
+/// most events take none at all.  Two points on one lane sharing an id would make `mark("A", "x")`
 /// answer with whichever came first, silently, so it fails instead.
 #let _check-ids(lanes, rows) = {
   for (ri, row) in rows.enumerate() {
@@ -916,10 +932,10 @@
 /// A Lamport diagram of `replicas` exchanging `events`.
 ///
 /// `replicas` fixes the lane order -- top to bottom in a horizontal diagram, left to right in a
-/// vertical one.  Each entry is an id string, a `replica` -- which also carries that lane's event
+/// vertical one.  Each entry is an id string, a `replica` -- which also carries that lane's point
 /// defaults -- or a bare dictionary of the same fields.  `events` maps each replica id to that
 /// replica's local history in order: bare content or a bare string for a local event, or `event`,
-/// `send`, `recv` and `gap`.
+/// `send`, `recv`, `sync`, `idle` and `gap`.
 ///
 /// `orientation` says which way logical time runs: `horizontal` (`rightwards`) or `leftwards` lay the
 /// timelines out as rows and stack the replicas downwards, so a label sits `above` or `below` its
@@ -979,7 +995,7 @@
   // so a dropped side falls through the same way an unstated one does.
   let checked = _sanitise-sides(lanes, lanes.map(lane => events.at(lane.id).map(_item)), orientation)
   let lanes = checked.lanes
-  let rows = checked.rows.enumerate().map(((ri, row)) => _resolve-defaults(row, lanes.at(ri), axes.first-displacement))
+  let rows = checked.rows.enumerate().map(((ri, row)) => _resolve-defaults(row, lanes.at(ri), axes.first-label-displacement))
   let msgs = _messages(rows)
   let exchanges = _exchanges(rows)
   for name in exchanges.keys() {
@@ -1109,8 +1125,8 @@
     // `measure` then reports, so a ratio displacement is taken against the boxed width, not the
     // width the label would have had on one line.
     let label-of = it => {
-      let sized = if it.size == none { it.body } else { text(size: it.size, it.body) }
-      if it.width == none { sized } else { box(width: it.width, sized) }
+      let sized = if it.label-size == none { it.body } else { text(size: it.label-size, it.body) }
+      if it.label-width == none { sized } else { box(width: it.label-width, sized) }
     }
     let span-of = it => if type(it.span) == str {
       _gap-spans.at(it.span) * col-gap
@@ -1121,10 +1137,10 @@
     }
     // Whole columns come from the solver, which has no way to express the sub-column lean of a
     // message arrow, so a receive's displacement rides on top of its column as a drawing offset.
-    let offset-of = it => if type(it.displacement) == length {
-      it.displacement.to-absolute() / 1cm
-    } else if type(it.displacement) == ratio {
-      it.displacement / 100% * col-gap
+    let offset-of = it => if type(it.mark-displacement) == length {
+      it.mark-displacement.to-absolute() / 1cm
+    } else if type(it.mark-displacement) == ratio {
+      it.mark-displacement / 100% * col-gap
     } else {
       0.0
     }
@@ -1146,12 +1162,12 @@
     }
     // How far this label's backdrop reaches past its own box, or `none` for no backdrop at all.  A
     // length given here resolves against the diagram's text size, like every other one.
-    let label-halo-of = it => if it.halo == none {
+    let label-padding-of = it => if it.label-padding == none {
       none
-    } else if it.halo == auto {
-      _label-halo
+    } else if it.label-padding == auto {
+      _label-padding
     } else {
-      it.halo.to-absolute() / 1cm
+      it.label-padding.to-absolute() / 1cm
     }
 
     // Both reaches are in time, not on the page: how far back the earliest label runs and how far
@@ -1207,7 +1223,8 @@
             + lanes.at(ri).id
             + "' has no point called '"
             + key
-            + "' -- an event takes one with `id:`, and a send, recv or sync is known by its name",
+            + "' -- every point takes one with `id:`, and a send, recv or sync answers to its "
+            + "message name without one",
         )
         found
       } else if type(key) == int {
@@ -1419,10 +1436,10 @@
       let (sx, sy) = side-offset(side-of(it, ri))
       (bx + sx, by + sy)
     }
-    // And the box the drawing sets it in: the size of the label, plus the padding of its halo on
-    // every side, plus the slack below the baseline for the glyphs that reach under it.  The halo
-    // fills this box, so this is the box to give out -- a rectangle round a label is the box the
-    // label went in.
+    // And the box the drawing sets it in: the size of the label, plus its `label-padding` on every
+    // side, plus the slack below the baseline for the glyphs that reach under it.  The backdrop fills
+    // this box, so this is the box to give out -- a rectangle round a label is the box the label went
+    // in.
     //
     // CeTZ measures a label between the cap height and the baseline, and it measures the slack on a
     // copy with no line breaks.  This measures both the same way.  A box measured another way is not
@@ -1436,8 +1453,8 @@
       let size = measured("baseline", body)
       let flat = [#show linebreak: [ ]; #body]
       let slack = measured("bounds", flat).height - measured("baseline", flat).height
-      let halo = label-halo-of(it)
-      let pad = if halo == none { 0 } else { halo }
+      let reach = label-padding-of(it)
+      let pad = if reach == none { 0 } else { reach }
       hung-box(
         label-at(ri, ii),
         side-anchor(side-of(it, ri)),
@@ -1819,17 +1836,18 @@
           if it.body != none {
             // A label gets the same backdrop a mark does, for the same reason: the arrows are already
             // drawn, and one crossing this lane has to break around the label rather than run through
-            // its glyphs.  `halo: none` drops it, for a label meant to let what is behind show through.
-            let halo-pad = label-halo-of(it)
+            // its glyphs.  `label-padding: none` drops it, for a label meant to let what is
+            // behind show through.
+            let pad = label-padding-of(it)
             // The drawing sets the label at the point `label-at` gives, with the anchor `label-box`
             // hangs its box off.  The box `names-rect` gives out is then the box this label went in.
             content(
               label-at(ri, ii),
               anchor: side-anchor(side-of(it, ri)),
-              frame: if halo-pad == none { none } else { "rect" },
-              fill: if it.fill == auto { white } else { it.fill },
+              frame: if pad == none { none } else { "rect" },
+              fill: if it.label-backdrop == auto { white } else { it.label-backdrop },
               stroke: none,
-              padding: if halo-pad == none { 0 } else { halo-pad },
+              padding: if pad == none { 0 } else { pad },
               text(fill: lane.color, label-of(it)),
             )
           }

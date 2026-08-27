@@ -28,7 +28,7 @@ release each of these landed in, and what is still waiting.
 
    :param replicas: the lanes order: top to bottom on a horizontal diagram, left to right on a
       vertical one.  Each entry is an id string, a `replica`:func: -- which also carries that lane's
-      event defaults -- or a bare dictionary of the same fields.
+      point defaults -- or a bare dictionary of the same fields.
 
    :param events: each replica id mapped to that replica's local history, in order.  An entry is
       bare content or a bare string for a local event, or one of `event`:func:, `send`:func:,
@@ -67,18 +67,17 @@ release each of these landed in, and what is still waiting.
 
    :param col-gap: the distance between two columns of logical time, and so how far apart the
                    solver's columns land.  Along the page on a horizontal diagram, down it on a
-                   vertical one.  A `gap`:func: span given as a ratio is taken against it, as is the
-                   ``displacement`` that nudges a `send`:func:, `recv`:func: or `sync`:func: off its
-                   column -- so widening the diagram widens those to match.  An `event's
-                   <event>`:func: ``displacement`` is the exception: it is a ratio of the label's
-                   own extent, the label being what it moves.
+                   vertical one.  A `gap`:func: span given as a ratio is taken against it, as is
+                   the ``mark-displacement`` that nudges a point off its column -- so widening the
+                   diagram widens those to match.  ``label-displacement`` is the other one: a ratio
+                   there is taken against the label's own extent, the label being what it moves.
 
    :param row-gap: the distance between two lanes.  Down the page on a horizontal diagram, across it
                    on a vertical one -- which is why its default is the larger of the two there: a
                    label sitting beside a lane runs toward the next one.
 
    :param text-size: the text size the diagram is drawn at, and what every ``em`` inside it resolves
-                     against.  A ``size: 0.8em`` on an event is therefore eight tenths of *this*
+                     against.  A ``label-size: 0.8em`` on a point is therefore eight tenths of *this*
                      diagram's em, not of the surrounding document's, so a diagram keeps its
                      proportions wherever it is placed.
 
@@ -135,75 +134,97 @@ release each of these landed in, and what is still waiting.
         - ``left``, ``right``
         - ``right``
 
-.. typst:function:: replica(name, ..defaults)
+.. typst:function:: replica(name, ..args)
 
-   Define the defaults to be applied to events on the replica's lane.
+   Define a lane, and the defaults the points on it fall back on.
 
    :param label: what the diagram prints for the lane.  Defaults to ``name``.
 
    :param color: the lane's color.  Defaults to the next entry of ``default-palette``, cycled over
       `replicas <replica>`:func: in order.
 
-   :param position: `above`:value: or `below`:value:, the side of the timeline this lane's event
-      labels sit on -- `left`:value: or `right`: on a vertical diagram; see `orientation`:arg:.
+   :param defaults: a dictionary of defaults for the points on this lane, each still overridable
+      point by point.  Its keys are the point arguments they stand for -- ``label-position``,
+      ``label-size``, ``label-displacement`` and ``first-label-displacement`` -- and nothing else,
+      which is what keeps them clear of ``label``.  The lane's ``label`` is the name the diagram
+      prints for the lane; ``defaults.label-size`` is the text size of the points' labels, not of
+      that name.
 
-      .. important:: `send`:func:, `recv`:func:, and `sync`:func: ignore the position and place the
-         label on the *opposite* side of the arrow.  Their own ``label-position`` overrides that.
+      ``first-label-displacement`` is ``label-displacement`` for the lane's opening point, the one
+      that would otherwise crowd the replica name.  Left alone it is the orientation's own: ``20%``
+      on a horizontal diagram, where the name sits immediately left of that first label, and ``0%``
+      on a vertical one, where the name is before the lane in time and the labels are beside it, so
+      there is nothing to move out of.
 
-   :param size: the text size of this lane's event labels.
+      .. important:: ``label-position`` reaches this lane's local `events <event>`:func: only.  A
+         `send`:func:, a `recv`:func: and a `sync`:func: each have an arrow to stay clear of, and
+         their label takes the side that clears it; their own ``label-position`` overrides that.
+         The other three defaults reach all four kinds of point.
 
-   :param displacement: how far this lane's event labels slide off their own dot.
-
-   :param first-displacement: the same, for the lane's opening event, the one that would otherwise
-      crowd the replica name.  Left alone it is the orientation's own: ``20%`` on a horizontal
-      diagram, where the name sits immediately left of that first label, and ``0%`` on a vertical
-      one, where the name is before the lane in time and the labels are beside it, so there is
-      nothing to move out of.  ``label``, ``color`` and ``position`` may also be given positionally,
-      in any order: they are told apart by type, so ``replica("A", below, red)`` and ``replica("B",
-      red, below)`` are the same lane.  The rest must be named.
+   ``color`` and the ``label-position`` default may also be given positionally, in either order:
+   they are told apart by type, so ``replica("A", below, red)`` and ``replica("B", red, below)`` are
+   the same lane.  The rest must be named.
 
 .. typst:function:: event(..args)
 
    A local event on a replica's timeline.  Its body is the label -- content or a plain string.
 
-   :param position: `above`:value: or `below`:value: the timeline, or `left`:value: or
+   All four kinds of point -- ``event``, `send`:func:, `recv`:func: and `sync`:func: -- take the
+   arguments below and read them the same way.  What tells them apart is the arrow: an event carries
+   none, so it is the one that takes no message name and no ``label``.
+
+   :param label-position: `above`:value: or `below`:value: the timeline, or `left`:value: or
       `right`:value: on a vertical diagram; see `orientation`:arg:.
 
-   :param size: the label's text size.
+   :param label-size: the label's text size.
 
-   :param displacement: slides the label along the timeline, out of being centred on its own dot.  A
-      ratio is taken against the label's own width, so ``+50%`` leaves the label's left edge over
-      the dot and ``-50%`` its right edge, while a length is an exact offset and ``0`` (or ``0%``)
-      centres it.  On a vertical diagram the ratio is taken against the label's height instead, that
-      being what runs along the timeline there.
+   :param label-displacement: slides the label along the timeline, out of being centred on its own
+      dot.  A ratio is taken against the label's own width, so ``+50%`` leaves the label's left edge
+      over the dot and ``-50%`` its right edge, while a length is an exact offset and ``0`` (or
+      ``0%``) centres it.  On a vertical diagram the ratio is taken against the label's height
+      instead, that being what runs along the timeline there.
 
-   :param width: wraps the label to a fixed width instead of letting it run along the timeline on
-      one line, which is what keeps a long label from crowding its neighbors.  **Named only**: a
-      bare length is read as a ``displacement``, that being the far commoner one to reach for.  The
-      box is centred on the mark like any other label, and its contents are left to you -- wrap the
-      body in ``align(center, ..)`` if centred lines read better than the ragged right edge.
+   :param mark-displacement: slides the mark itself off the column the layout solved it into, in
+      either direction.  It is the one argument that moves the point rather than its label.  A ratio
+      is taken against ``col-gap``, a length is an exact offset, and ``0`` (the default on
+      every kind but `recv`:func:) leaves the mark on its column.
 
-   :param halo: how far the label's backdrop reaches past the label's own box, which is what breaks
-      an arrow crossing the lane so it does not crowd the glyphs.  ``auto`` (the default) matches
-      the reach of the disc under a mark, so a label and a dot break an arrow by the same amount; a
-      length sets an exact reach, and ``none`` drops the backdrop, letting whatever is behind show
-      through.
+      The nudge is a drawing offset the column solver knows nothing about.  It reserves no room, so
+      it never moves what follows on its lane, and a negative one wide enough to put a point
+      visually behind its own counterpart does *not* trip the causal-cycle check.  It is equally
+      outside what the drawing sizes itself to on that side, so a nudge large enough to push a
+      bodiless mark left of where its lane starts will leave it overhanging the replica name.
 
-   :param fill: what that backdrop is painted with.  ``auto`` (the default) is white, which is what
-      breaks whatever runs behind the label; a paint is used as given, so a label sitting in a wash
-      an `overlay <overlays>`:doc: laid down can be given that same wash and read as part of it
-      rather than as a hole punched in it; and ``none`` leaves the backdrop unpainted, which is
-      ``halo: none`` with the label's box kept.  A translucent paint hides no more than it says, so
-      an arrow behind a washed label still shows through -- and a translucent fill over a wash of
-      its own color compounds with it into a slightly darker patch.
+   :param label-width: wraps the label to a fixed width instead of letting it run along the timeline
+      on one line, which is what keeps a long label from crowding its neighbors.  **Named only**: a
+      bare length is read as a ``label-displacement``, that being the far commoner one to reach for.
+      The box is centred on the mark like any other label, and its contents are left to you -- wrap
+      the body in ``align(center, ..)`` if centred lines read better than the ragged right edge.
 
-   The dot itself never moves: it is the event's place in time, which the layout solves for.
+   :param label-padding: how far the label's backdrop reaches past the label's own box, which is
+      what breaks an arrow crossing the lane so it does not crowd the glyphs.  ``auto`` (the
+      default) matches the reach of the disc under a mark, so a label and a dot break an arrow by
+      the same amount; a length sets an exact reach, and ``none`` drops the backdrop, letting
+      whatever is behind show through.
 
-   Arguments are told apart by type, so they may come in any order and every one of them is
-   optional: ``event(below, +50%)[AddFile1]`` and ``event(+50%, below, "AddFile1")`` are the same
-   event.  For the common case of a label and nothing else, bare content or a bare string in an
-   ``events`` array is shorthand, so ``[AddFile1]``, ``"AddFile1"`` and ``event[AddFile1]`` are the
-   same event too.
+   :param label-backdrop: what that backdrop is painted with.  ``auto`` (the default) is white,
+      which is what breaks whatever runs behind the label; a paint is used as given, so a label
+      sitting in a wash an `overlay <overlays>`:doc: laid down can be given that same wash and read
+      as part of it rather than as a hole punched in it; and ``none`` leaves the backdrop unpainted,
+      which is ``label-padding: none`` with the label's box kept.  A translucent paint hides no more
+      than it says, so an arrow behind a washed label still shows through -- and a translucent paint
+      over a wash of its own color compounds with it into a slightly darker patch.
+
+   :param id: what an `overlay <overlays>`:doc: names this point by, in place of the index it sits
+      at on its lane.  On a `send`:func:, a `recv`:func: or a `sync`:func: it defaults to the message
+      name.
+
+   ``label-position``, ``label-displacement`` and the body may also be given positionally, in any
+   order: they are told apart by type, so ``event(below, +50%)[AddFile1]`` and ``event(+50%, below,
+   "AddFile1")`` are the same event, and so are ``send("push", below)[pushed]`` and ``send("push",
+   "pushed", below)``.  For the common case of a label and nothing else, bare content or a bare
+   string in an ``events`` array is shorthand, so ``[AddFile1]``, ``"AddFile1"`` and
+   ``event[AddFile1]`` are the same event too.
 
 .. typst:function:: send(name, ..args)
 .. typst:function:: recv(name, ..args)
@@ -211,40 +232,26 @@ release each of these landed in, and what is still waiting.
    The points where the message ``name`` leaves one replica and is applied on another.  Exactly one
    ``send`` and one ``recv`` must exist for each name.
 
-   An optional label for the point goes positionally -- ``send("push")[pushed]``, ``recv("pull")[now
-   duplicated]`` -- or as ``body``, with ``size`` setting its text size, ``label-position``
-   overriding the side it sits on, and ``label-displacement`` sliding it along the timeline.  That
-   last one is the ``displacement`` of an `event`:func:, under a name that says which of the two it
-   moves: here ``displacement`` moves the mark, and ``label-displacement`` only the label.
+   Both take every argument an `event`:func: takes, and one more:
 
-   :param label-position: Overrides the position of the label.  But default, the label is placed in
-      the opposite side of the arrow.
+   :param label: labels the arrow itself rather than the point, and keeps its own styling.  Either
+      end may carry it, and the first one given wins.
 
-   :param displacement: Nudges the point off the column it is solved into, in either direction.  A
-      ratio is taken against the column gap.  Only the defaults differ:
+   Their label sits on the side of the timeline that their own arrow does not occupy, so an arrow
+   running straight across the lanes never runs through its own endpoint labels.  A
+   ``label-position`` given on the point replaces that side; a lane's default does not reach it.
 
-      - on a ``recv`` it is ``1cm`` -- how far right of its ``send`` the point lands whenever
-        nothing on its own replica pushes it further, and enough to lean the arrow forward.
-        ``recv(..., displacement: none)`` leaves it on its column, drawing a vertical arrow when the
-        receiving replica has nothing else competing for that column.
+   ``mark-displacement`` is the one argument whose default differs between the two:
 
-      - on a ``send`` it is ``none`` -- a send sits on its own column unless you say otherwise,
-        since it is the receive that leans a message forward.  Reach for it to tilt an arrow away
-        from whatever a vertical line would otherwise run through, or to separate two sends the
-        solver put in one column.
+   - on a ``recv`` it is ``1cm`` -- how far past its ``send`` in time the point lands whenever
+     nothing on its own replica pushes it further, and enough to lean the arrow forward.
+     ``recv(.., mark-displacement: 0)`` leaves it on its column, drawing an arrow straight across
+     the lanes when the receiving replica has nothing else competing for that column.
 
-      The nudge is a drawing offset the column solver knows nothing about.  It reserves no room, so
-      it never moves what follows on its lane, and a negative one wide enough to put a point
-      visually behind its own counterpart does *not* trip the causal-cycle check.  It is equally outside what
-      the drawing sizes itself to on that side, so a displacement large enough to push a bodiless
-      mark left of where its lane starts will leave it overhanging the replica name.
-
-   Both also take ``halo`` and ``fill``, the label's backdrop, which mean exactly what they mean on
-   an `event`:func:.
-
-   ``send`` also takes:
-
-   :param label: labels the arrow itself rather than the point, and keeps its own styling.
+   - on a ``send`` it is ``0`` -- a send sits on its own column unless you say otherwise, since it
+     is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever
+     a straight run across the lanes would otherwise cross, or to separate two sends the solver put
+     in one column.
 
 .. typst:function:: sync(name, ..args)
 
@@ -261,13 +268,11 @@ release each of these landed in, and what is still waiting.
    before the other one starts it.  A name cannot be both a ``sync`` and a ``send``/``recv``
    message.
 
-   An optional label for the point goes positionally -- ``sync("push")[rolled back]`` -- or as
-   ``body``, with ``size`` setting its text size, ``label-position`` forcing the side the label sits
-   on, ``label-displacement`` sliding it along the timeline, and ``halo`` and ``fill`` setting its
-   backdrop as they do on an `event`:func:.  ``label`` instead
-   labels the arrow itself; either end may carry it, and the first one given wins.  ``displacement``
-   nudges this end off the shared column, which tilts the arrow away from whatever the vertical line
-   would otherwise run through; it is a drawing offset and says nothing about the order.
+   It takes every argument an `event`:func: takes, and ``label`` for the arrow itself, exactly as a
+   `send`:func: does -- either end may carry it, and the first one given wins.
+   ``mark-displacement`` nudges this end off the shared column, which tilts the arrow away from
+   whatever a straight run across the lanes would otherwise cross; it is a drawing offset and says
+   nothing about the order.
 
    .. typst-code::
 
@@ -279,6 +284,7 @@ release each of these landed in, and what is still waiting.
           "Client B": (idle(1), [Edit], sync("second")[has both edits]),
         ),
       )
+
 
 .. typst:function:: message(from, to, ..args)
 

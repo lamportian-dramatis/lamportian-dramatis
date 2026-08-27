@@ -8,11 +8,11 @@
   replicas: ("node", "server"),
   events: (
     "node": (
-      send("http-request", label-displacement: 20%)[HTTP POST],
-      event(displacement: 30%, position: left)[Local DB update]
+      send("http-request", 20%)[HTTP POST],
+      event(30%, left)[Local DB update]
     ),
     "server": (
-      recv("http-request", label-displacement: 30%)[
+      recv("http-request", 30%)[
         HTTP atomic request\
         Update DB before returning
       ],

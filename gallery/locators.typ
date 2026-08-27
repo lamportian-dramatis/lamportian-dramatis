@@ -62,7 +62,7 @@
       let (settled, drawn) = (column("R2", "t1"), time("R2", "t1"))
       note(point(settled - 0.05, -0.45), "south-east", column-ink, [column 3])
       note(point(drawn + 0.05, -0.45), "south-west", time-ink, [time 3.5])
-      note(point((settled + drawn) / 2, 1.9), "north", both-ink, [displacement: 1cm])
+      note(point((settled + drawn) / 2, 1.9), "north", both-ink, [mark-displacement: 1cm])
       // Centred along the guide it names: between the two lanes there is nothing else to dodge.
       note(point((starts + ends) / 2, 0.5), "south", lane-ink, [lane 0.5])
     },
