@@ -49,7 +49,7 @@ Drawing is done with [CeTZ](https://typst.app/universe/package/cetz/) 0.5.2.  Th
 
 ## Development
 
-From a clone of the [repository](https://github.com/lamportian-dramatis/lamportian-dramatis):
+From a clone of the [repository](https://github.com/lamportian-dramatis/package):
 
 ```sh
 make check     # compile every gallery example; silence means the library still works
@@ -60,7 +60,7 @@ make publish   # stage the package into a clone of github.com/typst/packages
 make uninstall # stop shadowing the published package (see below)
 ```
 
-The documentation is written in reStructuredText under [`docs/`](https://github.com/lamportian-dramatis/lamportian-dramatis/tree/main/docs), and built with [Sphinx](https://www.sphinx-doc.org/) and the [Furo](https://pradyunsg.me/furo/) theme.  Both are pinned in the Makefile and run through [`uvx`](https://docs.astral.sh/uv/), so there is nothing to install and the site you build is the site that gets published.  `make preview` watches the sources and serves them at [localhost:4983](http://localhost:4983), rebuilding on every save; `make docs` writes the finished HTML into `site/`.
+The documentation is written in reStructuredText under [`docs/`](https://github.com/lamportian-dramatis/package/tree/main/docs), and built with [Sphinx](https://www.sphinx-doc.org/) and the [Furo](https://pradyunsg.me/furo/) theme.  Both are pinned in the Makefile and run through [`uvx`](https://docs.astral.sh/uv/), so there is nothing to install and the site you build is the site that gets published.  `make preview` watches the sources and serves them at [localhost:4983](http://localhost:4983), rebuilding on every save; `make docs` writes the finished HTML into `site/`.
 
 `site/` is the [`lamportian-dramatis.github.io`](https://github.com/lamportian-dramatis/lamportian-dramatis.github.io) repository, carried here as a submodule, and holds nothing but that build — GitHub Pages serves it verbatim, which is what the `.nojekyll` file in it is for.  Clone with `--recurse-submodules`, or run `git submodule update --init` in an existing clone.  Commit and push inside `site/` first, then commit the moved submodule pointer here, so that a revision of this repository names the pages that went with it.
 

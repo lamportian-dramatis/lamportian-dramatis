@@ -12,7 +12,7 @@ and override the orientation, that being the whole of the difference between the
 ``gorgeous.typ``
 ----------------
 
-`Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/gorgeous.typ>`__
+`Source on GitHub <https://github.com/lamportian-dramatis/package/blob/main/gallery/gorgeous.typ>`__
 
 .. image:: gallery/gorgeous.png
    :alt: A fictional scenario showing a convergence bug in a fictional system
@@ -23,7 +23,7 @@ diagram the `front page <index>`:doc: leads with, and the one whose code is prin
 ``vertical.typ``
 ----------------
 
-`Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/vertical.typ>`__
+`Source on GitHub <https://github.com/lamportian-dramatis/package/blob/main/gallery/vertical.typ>`__
 
 .. image:: gallery/vertical.png
    :alt: The same scenario drawn vertically, the timelines running down the page
@@ -44,7 +44,7 @@ having to be restated.  See `orientation`:arg:.
 ``overlays.typ``
 ----------------
 
-`Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/overlays.typ>`__
+`Source on GitHub <https://github.com/lamportian-dramatis/package/blob/main/gallery/overlays.typ>`__
 
 .. image:: gallery/overlays.png
    :alt: The future cone of one event, washed behind the lanes, with a ring round the event itself
@@ -57,7 +57,7 @@ through it, and a ring at ``marks`` so ``A.2``'s own label stays legible over it
 -------------------------
 
 `Source on GitHub
-<https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/vertical-overlays.typ>`__
+<https://github.com/lamportian-dramatis/package/blob/main/gallery/vertical-overlays.typ>`__
 
 .. image:: gallery/vertical-overlays.png
    :alt: The same future cone in a vertical diagram, the cone opening downwards
@@ -70,7 +70,7 @@ orientation-independent <overlays:Staying orientation-independent>`:ref:.
 ``legend.typ``
 --------------
 
-`Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/legend.typ>`__
+`Source on GitHub <https://github.com/lamportian-dramatis/package/blob/main/gallery/legend.typ>`__
 
 .. image:: gallery/legend.png
    :alt: A diagram with each of its parts named: a sync, a local event, a send and the receive it
@@ -84,7 +84,7 @@ the ring round it.  It is the picture the `guide <guide>`:doc: opens on.
 ``locators.typ``
 ----------------
 
-`Source on GitHub <https://github.com/lamportian-dramatis/lamportian-dramatis/blob/main/gallery/locators.typ>`__
+`Source on GitHub <https://github.com/lamportian-dramatis/package/blob/main/gallery/locators.typ>`__
 
 .. image:: gallery/locators.png
    :alt: Two replicas crossed by dotted guides: one at column 1, which is time 1 as well; a pair at
