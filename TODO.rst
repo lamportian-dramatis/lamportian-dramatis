@@ -99,6 +99,94 @@ Noticed on the way
 - A few ``///`` blocks have ragged wrapping left over from edits: ``lib.typ:397-400``,
   ``lib.typ:404-407`` and ``lib.typ:1279``.
 
+
+Label padding is narrower than what CeTZ takes
+----------------------------------------------
+
+Noticed on 2026-08-27, against commit ``4c9c4a279ddb3424df48c90ad6011a203afac25c``.  The
+``lib.typ:NNN`` lines below are of that revision, not of the review above.
+
+``label-padding`` reaches ``draw.content`` unchanged.  Nothing between the author and CeTZ reads
+it, so it is the one label argument that has no frame of ours: it applies around the label's own
+box, which never turns when the orientation does.
+
+CeTZ accepts more shapes for a padding than we do.  ``util.as-padding-dict`` in CeTZ 0.5.2 takes a
+scalar, a CSS-like array of two, three or four values, or a dictionary keyed the way `Typst's pad
+<https://typst.app/docs/reference/layout/pad/>`_ is keyed -- ``left``, ``right``, ``top``,
+``bottom``, ``x``, ``y`` and ``rest``.  ``_point-label-padding`` (``lib.typ:153``) narrows all of
+that to ``auto``, ``none`` or one length.
+
+The narrowing is what keeps the library correct today, because ``label-box`` (``lib.typ:1458``)
+computes the padded box by hand:
+
+.. code-block:: typ
+
+   size.width / 1cm + 2 * pad,
+   (size.height + slack) / 1cm + 2 * pad,
+
+``2 * pad`` multiplies a number.  An array and a dictionary are not numbers, so the moment
+``label-padding`` accepts what CeTZ accepts, this fails.  It fails loudly, with a type error, and
+it is the only thing that fails.
+
+What does not break, and must not be "fixed"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``hung-box`` (``lib.typ:1420``) is correct for an asymmetric pad, and it is worth writing down why,
+because it does not look correct.
+
+``hung-box`` centers the box across the anchor axis, as ``x - w / 2``.  CeTZ does the same.  In
+``draw/shapes.typ`` the padding grows the totals only::
+
+   let width = calc.max(0, bounds-width + padding.left + padding.right)
+   let height = calc.max(0, bounds-height + padding.top + padding.bottom)
+
+and every anchor is then ``bounds-center`` plus or minus ``width / 2`` or ``height / 2``.  A pad of
+``left: 5mm`` and ``right: 0mm`` therefore makes the frame wider and leaves it centered on the
+anchor.  It moves the glyphs inside the frame; it does not move the frame.  ``names-rect`` hands
+out the frame, which is what it says it hands out, so the two still agree.
+
+What to change
+~~~~~~~~~~~~~~
+
+Resolve the padding to the dictionary CeTZ will resolve it to, and read the four sides:
+
+- ``_point-label-padding`` (``lib.typ:153``) accepts anything ``cetz.util.as-padding-dict`` accepts,
+  and rejects nothing else.
+
+- ``label-padding-of`` (``lib.typ:1176``) answers that dictionary, with each side resolved to canvas
+  units the way ``resolve-number`` resolves it: a length divided by ``1cm``, a number as it stands.
+  ``cetz.util`` is exported, so the shape logic is CeTZ's and never a second copy of it.
+
+- ``label-box`` adds ``left + right`` to the width and ``top + bottom`` to the height.
+
+Do not wrap the label in `Typst's pad <https://typst.app/docs/reference/layout/pad/>`_.  CeTZ never
+does: it measures the bare content and adds the four numbers itself.  Wrapping would apply the pad
+twice unless CeTZ's own ``padding`` went to zero, and ``pad`` takes no array, so it cannot express
+the CSS-like forms that CeTZ accepts.
+
+When to do it
+~~~~~~~~~~~~~
+
+This is refactor work, not a fix to land on its own.  It belongs with the per-point table above:
+``label-padding-of`` becomes a field of that table, holding the resolved dictionary, and
+``label-box`` becomes a read of it.  Widening the argument first and building the table second
+would write the four-side arithmetic twice.
+
+``label-padding`` is also the clearest example of a *pass-through* value: the author hands it to
+CeTZ and no code of ours reasons about it.  ``label-backdrop`` and a ``message``'s ``stroke``,
+``size`` and ``padding`` are the others.  The refactor should carry them as one bundle rather than
+thread each one through ``_item`` and ``_resolve-defaults`` field by field.  Widening
+``label-padding`` is the first case that makes the field-by-field handling actually break, so it is
+the right one to design the bundle around.
+
+One thing to keep as it is
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``extent-of`` (``lib.typ:1163``) measures the label *unpadded*, and a ratio ``label-displacement``
+is taken against that.  ``docs/reference.rst`` says the ratio is against the label's own extent, so
+unpadded is the documented reading.  Keep it, and say so in a comment, or the next reader will make
+the two agree and change what a ratio means.
+
 Checked and sound
 -----------------
 
