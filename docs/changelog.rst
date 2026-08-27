@@ -16,8 +16,8 @@ Added
 - One API for all four kinds of point.  `event`:func:, `send`:func:, `recv`:func: and `sync`:func:
   now take the same nine arguments -- ``body``, ``id``, ``label-position``, ``label-displacement``,
   ``mark-displacement``, ``label-size``, ``label-width``, ``label-padding`` and ``label-backdrop`` --
-  and read them the same way.  The three that carry an arrow take ``label`` on top of those.  The
-  renames this cost are in the table under Changed, below.
+  and read them the same way.  The three that carry an arrow take ``message-label`` on top of
+  those.  The renames this cost are in the table under Changed, below.
 
 - Positional arguments are told apart by type on all four, so they may come in any order:
   ``send("push", below, +50%)[pushed]`` is as good as naming each one.  Previously only an
@@ -29,8 +29,9 @@ Added
 - ``label-width`` and ``id`` on `send`:func:, `recv`:func: and `sync`:func:.  An ``id`` given there
   replaces the message name an `overlay <overlays>`:doc: would otherwise address the point by.
 
-- ``label`` on `recv`:func:, which labels the message arrow.  Either end of a message may carry it
-  now, and the first one given wins -- the rule a `sync`:func: already used.
+- ``message-label`` on `recv`:func:.  Either end of a message may carry the text on its arrow now,
+  and the first (following the ``replicas`` list) one given wins -- the rule a `sync`:func: already
+  used.
 
 - ``label-padding`` and ``label-backdrop`` on all four, which set how far a label's backdrop reaches
   past the label's own box and what it is painted with.
@@ -84,6 +85,13 @@ Changed
      * - ``fill``
        - ``label-backdrop``
        - all four
+     * - ``label``
+       - ``message-label``
+       - `send`:func:, `sync`:func:
+
+  ``label`` named the text on a message arrow, while the same word named a point's own body
+  throughout the prose.  ``message-label`` says which of the two it draws, and leaves a point's label
+  to be its body.
 
 - A `replica's <replica>`:func: point defaults move under ``defaults``, and take the name of the
   point argument each one stands for: ``defaults: (label-position: .., label-size: ..,

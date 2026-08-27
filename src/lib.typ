@@ -284,7 +284,8 @@
 )
 
 /// One point that carries an arrow.  `name` pairs it with the point at the other end of that arrow,
-/// and `label` labels the arrow rather than the point.
+/// and `message-label` is the text drawn on that arrow.  The point's own label is its body, the way
+/// it is on every other kind of point.
 #let _arrow-point(kind, name, args) = {
   assert(
     type(name) == str,
@@ -295,9 +296,9 @@
       + "(\"push\")`",
   )
   (
-    .._point(kind, args, _point-parameters + ("label",)),
+    .._point(kind, args, _point-parameters + ("message-label",)),
     name: name,
-    label: args.named().at("label", default: none),
+    message-label: args.named().at("message-label", default: none),
   )
 }
 
@@ -354,8 +355,10 @@
 #let event(..args) = _point("event", args, _point-parameters)
 
 /// The point where the message `name` leaves this replica.  It takes the arguments every point takes
-/// -- see `event` -- and one more: `label`, which labels the arrow itself rather than the point, and
-/// keeps its own styling.  Either end of a message may carry it, and the first one given wins.
+/// -- see `event` -- and one more: `message-label`, the text drawn on the arrow itself, which keeps
+/// its own styling.  Either end of a message may carry it, and the first one wins -- first in the
+/// order the `replicas` list gives, not in the order `events` lists the lanes in.  The point's own
+/// label is its body, as it is everywhere else.
 ///
 /// The label of a send, a recv or a sync sits on the side of the timeline that its own arrow does not
 /// occupy, so an arrow running straight across the lanes never runs through its own endpoint labels.
@@ -369,8 +372,9 @@
 #let send(name, ..args) = _arrow-point("send", name, args)
 
 /// The point where the message `name` is applied on this replica.  Exactly one `send` and one `recv`
-/// must exist for each name.  It takes the arguments every point takes -- see `event` -- and `label`,
-/// which labels the arrow itself; either end of a message may carry it, and the first one given wins.
+/// must exist for each name.  It takes the arguments every point takes -- see `event` -- and
+/// `message-label`, the text drawn on the arrow; either end of a message may carry it, and the first
+/// one wins, in the order the `replicas` list gives.
 ///
 /// `mark-displacement` is the one argument whose default differs from the other three kinds: `1cm`,
 /// which is how far past its `send` in time the point lands whenever nothing on its own replica
@@ -395,8 +399,9 @@
 /// other one starts it.  Holding the same events is not the same as holding the same state, so each
 /// end takes its own label.
 ///
-/// It takes the arguments every point takes -- see `event` -- and `label`, which labels the arrow
-/// itself; either end may carry it, and the first one given wins.  `mark-displacement` nudges this
+/// It takes the arguments every point takes -- see `event` -- and `message-label`, the text drawn on
+/// the arrow; either end may carry it, and the first one wins, in the order the `replicas` list
+/// gives.  `mark-displacement` nudges this
 /// end off the shared column, which tilts the arrow away from whatever a straight run across the
 /// lanes would otherwise cross; it is a drawing offset and says nothing about the order.
 #let sync(name, ..args) = _arrow-point("sync", name, args)
@@ -548,7 +553,7 @@
     label-width: d.at("label-width", default: none),
     label-padding: d.at("label-padding", default: auto),
     label-backdrop: d.at("label-backdrop", default: auto),
-    label: d.at("label", default: none),
+    message-label: d.at("message-label", default: none),
     name: name,
     // What an overlay addresses this point by.  A send, recv or sync answers to the message name
     // that pairs its two ends, unless it was given an id of its own; an event has only its own.
@@ -764,20 +769,25 @@
   )
 }
 
-/// Pairs the two ends of every `sync`, as `name => (ends: ((row, i), (row, i)), label)`.  An arrow
-/// label may be given on either end; the first one given wins.
+/// Pairs the two ends of every `sync`, as `name => (ends: ((row, i), (row, i)), message-label)`.
+/// Either end may carry the arrow's text; the first one wins.  The rows arrive in the order the
+/// `replicas` list gives, so that order is what "first" means.
 #let _exchanges(rows) = {
   let exchanges = (:)
   for (ri, row) in rows.enumerate() {
     for (ii, it) in row.enumerate() {
       if it.kind == "sync" {
         assert(type(it.name) == str, message: "lamport-diagram: every sync needs a name")
-        let x = exchanges.at(it.name, default: (ends: (), label: none))
+        let x = exchanges.at(it.name, default: (ends: (), message-label: none))
         exchanges.insert(
           it.name,
           (
             ends: x.ends + ((ri, ii),),
-            label: if x.label == none { it.label } else { x.label },
+            message-label: if x.message-label == none {
+              it.message-label
+            } else {
+              x.message-label
+            },
           ),
         )
       }
@@ -800,8 +810,9 @@
   exchanges
 }
 
-/// Pairs every `send` with its `recv`, as `name => (send: (row, i), recv: (row, i), label: any)`.
-/// An arrow label may be given on either end; the first one given wins, exactly as on a `sync`.
+/// Pairs every `send` with its `recv`, as `name => (send: (row, i), recv: (row, i), message-label:
+/// any)`.  Either end may carry the arrow's text; the first one wins, in the order the `replicas`
+/// list gives, exactly as on a `sync`.
 #let _messages(rows) = {
   let msgs = (:)
   for (ri, row) in rows.enumerate() {
@@ -811,18 +822,18 @@
           type(it.name) == str,
           message: "lamport-diagram: every send/recv needs a message name",
         )
-        let m = msgs.at(it.name, default: (send: none, recv: none, label: none))
+        let m = msgs.at(it.name, default: (send: none, recv: none, message-label: none))
         assert(
           m.at(it.kind) == none,
           message: "lamport-diagram: message '" + it.name + "' has more than one " + it.kind,
         )
-        let label = if m.label == none { it.label } else { m.label }
+        let arrow-text = if m.message-label == none { it.message-label } else { m.message-label }
         msgs.insert(
           it.name,
           if it.kind == "send" {
-            (..m, send: (ri, ii), label: label)
+            (..m, send: (ri, ii), message-label: arrow-text)
           } else {
-            (..m, recv: (ri, ii), label: label)
+            (..m, recv: (ri, ii), message-label: arrow-text)
           },
         )
       }
@@ -1675,7 +1686,7 @@
       // instead of striking through them.
       // An arrow's own label, set beside the middle of the shaft it belongs to.  A message and an
       // exchange both put one here, and both take it off the very spec they are drawn from.
-      let arrow-label = (spec, label) => {
+      let arrow-label = (spec, body) => {
         let (from, to) = spec.pos()
         let (dx, dy) = (to.at(0) - from.at(0), to.at(1) - from.at(1))
         let len = calc.sqrt(dx * dx + dy * dy)
@@ -1687,15 +1698,15 @@
           fill: white,
           stroke: none,
           padding: 0.03,
-          text(fill: message-stroke.paint, label),
+          text(fill: message-stroke.paint, body),
         )
       }
 
       for (_, m) in msgs {
         let spec = message-args-of(m.send, m.recv)
         line(..spec)
-        if m.label != none {
-          arrow-label(spec, m.label)
+        if m.message-label != none {
+          arrow-label(spec, m.message-label)
         }
       }
 
@@ -1704,8 +1715,8 @@
       for (_, x) in exchanges {
         let spec = message-args-of(..x.ends, heads: (start: "curved-stealth", end: "curved-stealth"))
         line(..spec)
-        if x.label != none {
-          arrow-label(spec, x.label)
+        if x.message-label != none {
+          arrow-label(spec, x.message-label)
         }
       }
       // What a given message is drawn from: the two ends it runs between, the spec the arrow is drawn

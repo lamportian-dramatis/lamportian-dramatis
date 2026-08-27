@@ -171,7 +171,7 @@ release each of these landed in, and what is still waiting.
 
    All four kinds of point -- ``event``, `send`:func:, `recv`:func: and `sync`:func: -- take the
    arguments below and read them the same way.  What tells them apart is the arrow: an event carries
-   none, so it is the one that takes no message name and no ``label``.
+   none, so it is the one that takes no message name and no ``message-label``.
 
    :param label-position: `above`:value: or `below`:value: the timeline, or `left`:value: or
       `right`:value: on a vertical diagram; see `orientation`:arg:.
@@ -234,24 +234,24 @@ release each of these landed in, and what is still waiting.
 
    Both take every argument an `event`:func: takes, and one more:
 
-   :param label: labels the arrow itself rather than the point, and keeps its own styling.  Either
-      end may carry it, and the first one given wins.
+   :param message-label: the text drawn on the message arrow itself, which keeps its own styling.
+      Either end of the message may carry it, and the first (following the ``replicas`` list) one
+      given wins.  The point's own label is its body, as it is on every other kind of point.
 
-   Their label sits on the side of the timeline that their own arrow does not occupy, so an arrow
-   running straight across the lanes never runs through its own endpoint labels.  A
-   ``label-position`` given on the point replaces that side; a lane's default does not reach it.
+   :param label-position: Overrides the position of the label.  By default, the label is placed in
+      the opposite side of the arrow.
 
-   ``mark-displacement`` is the one argument whose default differs between the two:
+   :param mark-displacement: Just like `event's <event>`:func: with different defaults:
 
-   - on a ``recv`` it is ``1cm`` -- how far past its ``send`` in time the point lands whenever
-     nothing on its own replica pushes it further, and enough to lean the arrow forward.
-     ``recv(.., mark-displacement: 0)`` leaves it on its column, drawing an arrow straight across
-     the lanes when the receiving replica has nothing else competing for that column.
+      - on a ``recv`` it is ``1cm`` -- how far past its ``send`` in time the point lands whenever
+        nothing on its own replica pushes it further, and enough to lean the arrow forward.
+        ``recv(.., mark-displacement: 0)`` leaves it on its column, drawing an arrow straight across
+        the lanes when the receiving replica has nothing else competing for that column.
 
-   - on a ``send`` it is ``0`` -- a send sits on its own column unless you say otherwise, since it
-     is the receive that leans a message forward.  Reach for it to tilt an arrow away from whatever
-     a straight run across the lanes would otherwise cross, or to separate two sends the solver put
-     in one column.
+      - on a ``send`` it is ``0`` -- a send sits on its own column unless you say otherwise, since
+        it is the receive that leans a message forward.  Reach for it to tilt an arrow away from
+        whatever a straight run across the lanes would otherwise cross, or to separate two sends the
+        solver put in one column.
 
 .. typst:function:: sync(name, ..args)
 
@@ -268,8 +268,9 @@ release each of these landed in, and what is still waiting.
    before the other one starts it.  A name cannot be both a ``sync`` and a ``send``/``recv``
    message.
 
-   It takes every argument an `event`:func: takes, and ``label`` for the arrow itself, exactly as a
-   `send`:func: does -- either end may carry it, and the first one given wins.
+   It takes every argument an `event`:func: takes, and ``message-label`` for the arrow itself,
+   exactly as a `send`:func: does -- either end may carry it, and the first (following the
+   ``replicas`` list) one given wins.
    ``mark-displacement`` nudges this end off the shared column, which tilts the arrow away from
    whatever a straight run across the lanes would otherwise cross; it is a drawing offset and says
    nothing about the order.
@@ -279,7 +280,7 @@ release each of these landed in, and what is still waiting.
       #lamport-diagram(
         replicas: ("Client A", replica("Server", below), replica("Client B", below)),
         events: (
-          "Client A": ([Edit], sync("first", label: "round trip"), idle(2), sync("third")[has both edits]),
+          "Client A": ([Edit], sync("first", message-label: "round trip"), idle(2), sync("third")[has both edits]),
           "Server": (sync("first"), sync("second"), idle(1), sync("third")),
           "Client B": (idle(1), [Edit], sync("second")[has both edits]),
         ),
