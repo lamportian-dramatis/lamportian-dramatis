@@ -611,14 +611,27 @@ lane over the very stretch ``gap-rect`` answers with, and runs its arrows betwee
 
 .. typst:locator:: col-gap
 .. typst:locator:: row-gap
+
+   The step from one column of logical time to the next, and the step from one lane to the next,
+   both in canvas centimeters.  They are the scale the diagram is drawn at: a time becomes a
+   distance on the page when you multiply it by ``col-gap``, and a lane when you multiply it by
+   ``row-gap``.
+
+   Use them to state a distance in the diagram's own terms.  A brace set half a column clear of the
+   last mark stays half a column clear after you retune ``col-gap``.  A brace set at ``+1.0`` does
+   not.
+
 .. typst:locator:: dot
 
-   The diagram's own measurements, in canvas centimeters: one column of time, one lane, and the
-   radius of an event's dot.
+   The radius of the mark on a local event, in canvas centimeters.  A `recv`:func: and a
+   `sync`:func: are drawn at this radius, and a `send`:func: at seven tenths of it.
 
-   They are here so a drawing can speak the diagram's own language.  A brace half a column clear of
-   the last mark stays half a column clear when you retune ``col-gap``; one written as ``+1.0`` does
-   not.
+   Reach for it to size a mark of your own against the marks the diagram draws.  A mark that
+   restates one the diagram already drew takes `mark-args`:locator: instead, which carries the
+   radius with it.
+
+   ``dot`` is a radius, not a step between columns or lanes.  It does not change when you retune
+   ``col-gap`` or ``row-gap``.
 
 .. _orientation-independent:
 
