@@ -106,3 +106,99 @@ No correctness bugs were found.  The solver's round bound in ``_columns`` leaves
 confirming pass; ``idle`` advances are counted into ``ncols``; a name used by both a sync and a
 message is rejected; and a receive that would precede its own send fails on the causal-cycle
 assertion rather than drawing backwards.
+
+
+Labels do not line up along a lane
+----------------------------------
+
+Noticed on 2026-08-27, against commit ``4c9c4a279ddb3424df48c90ad6011a203afac25c``.  The
+``lib.typ:NNN`` lines below are of that revision.
+
+``gallery/kaiko.png`` shows it.  ``Download`` and ``Upload`` are on one lane, on one side of it, at
+one text size, and their baselines are 4 pixels apart in a render 1024 pixels wide.  The one thing
+that separates the two words is the ``p``: ``Upload`` has a glyph that reaches below the baseline,
+and ``Download`` has none.
+
+Why
+~~~
+
+CeTZ hangs a label off the box it measures, and that box runs from the cap height down to the
+bottom of the ink, not down to the baseline.  ``content`` in CeTZ 0.5.2 measures the drop below the
+baseline as ``baseline-offset`` (``draw/shapes.typ:1152-1157``) and adds it to the height of the
+box.  A label with a descender therefore gets a taller box than a label without one: 0.22 em
+taller in Libertinus, which is 2.2 pt at a text size of 10 pt.
+
+``label-at`` (``lib.typ:1444``) steps the label ``side-step`` off its lane and hands that point to
+``content`` under the ``south`` anchor (``side-anchor``, ``lib.typ:1073``, and the labels pass,
+``lib.typ:1857``).  The anchor is the bottom edge of the box, so it is the bottom of the ink that
+lands ``side-step`` off the lane.  The baseline lands wherever the height of the box leaves it.
+
+The library already measures that drop.  ``label-box`` computes it as ``slack`` (``lib.typ:1466``),
+because the box it gives out has to be the box on the page.  Placement does not read it.
+
+Which sides are wrong
+~~~~~~~~~~~~~~~~~~~~~
+
+- ``above``, which anchors ``south``, is the side the gallery shows.  The label is out by the whole
+  slack.
+
+- ``below``, which anchors ``north``, is right as it stands.  The top edge of the box is the cap
+  height, which is a metric of the font and does not depend on the glyphs the label holds.
+
+- ``left`` and ``right``, which anchor ``east`` and ``west``, are out by half the slack, and they
+  are out along the timeline rather than across it.  Those two anchors sit at the middle of an
+  edge, so a taller box moves the glyphs half a slack up the page.
+
+- The replica names are out the same way, and for the same reason.  ``name-anchor`` is ``east`` or
+  ``west`` on a horizontal diagram (``lib.typ:65`` and ``lib.typ:76``), and ``lib.typ:1437`` hangs
+  the name off it.  A lane named ``pyp`` sits half a slack higher against its line than a lane
+  named ``oxo``; measured, that is 3 pixels of a 300 ppi render at 10 pt.
+
+What to change
+~~~~~~~~~~~~~~
+
+Move the point the label is set at, and let the box follow it there as it already does.
+
+- Lift ``slack`` out of ``label-box`` so that ``label-at`` reads the one number the box reads.  It
+  belongs in the per-point table above, next to ``extent``.
+
+- ``label-at`` then moves its point down the page: by the whole slack under ``south``, by half of
+  it under ``east`` and ``west``, and by nothing under ``north``.  Down the page is a subtraction,
+  since ``y`` grows upward on a CeTZ canvas.  The correction is in page terms, as ``side-offset``
+  and ``side-anchor`` already are, so it does not turn with the orientation.
+
+- ``label-box`` keeps hanging its box off ``label-at``, so ``names-rect`` still gives out the box
+  the label went in.
+
+- Do the same for the name box at ``lib.typ:1437``, which needs the half-slack step of an ``east``
+  or ``west`` anchor.  ``name-content`` (``lib.typ:1434``) has no ``label-padding`` to reason
+  about, so the slack is the whole of it.
+
+``label-padding`` also sits between the anchor and the baseline, and this must not absorb it.  Two
+labels with two paddings are meant to stand at two steps off their lane, because it is the edge of
+the backdrop that has to keep clear of the line.  Labels that share a padding are the ones that
+have to line up.  Only the slack is the defect.
+
+One question to settle first
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``extent-of`` (``lib.typ:1163``) measures the label with ``measure``, and Typst measures from the
+cap height to the baseline.  CeTZ boxes that height plus the slack.  The two agree on the width, so
+a horizontal diagram is not affected; on a vertical one, a ratio ``label-displacement`` is taken
+against a height that is not the height on the page.
+
+So decide what "the label's own extent" in ``docs/reference.rst`` names: the extent of the type,
+which is what the code measures today, or the extent of the ink, which is what the reader sees.
+Whichever it names, say it in a comment next to the one at ``lib.typ:1160-1162``.
+
+When to do it
+~~~~~~~~~~~~~
+
+This is a fix, not a refactor, and it can land on its own: it is one number and three additions.
+The per-point table above is the better home for it, because ``slack`` then has one place to live
+and ``label-at`` and ``label-box`` read the same field.  Either order works, as long as the table
+does not drop the correction on the way.
+
+This is also the one change in this file that must **not** come out pixel-identical.  Every gallery
+image with a label that has a descender moves, by design.  Read the new images before committing
+them, and do not diff them against the old ones for a pass.
