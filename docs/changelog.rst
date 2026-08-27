@@ -26,6 +26,9 @@ Added
 - ``mark-displacement`` on `event`:func:, which nudges an event's dot off the column the layout
   solved it into.  An event's dot could not be moved at all before.
 
+- A `replica`:func: takes its ``label`` positionally, beside the lane's ``color`` and its
+  ``label-position`` default, and the three are told apart by type.
+
 - ``label-width`` and ``id`` on `send`:func:, `recv`:func: and `sync`:func:.  An ``id`` given there
   replaces the message name an `overlay <overlays>`:doc: would otherwise address the point by.
 

@@ -698,9 +698,13 @@
 
 /// A replica lane, and the defaults the points on it fall back on.
 ///
-/// `name` is the id that the `events` dictionary keys on; `label` is what the diagram prints for the
-/// lane and `color` is its color, either of which may also be given positionally -- colors are told
-/// apart by type.
+/// `name` is the id that the `events` dictionary keys on.  `label` is what the diagram prints for
+/// the lane: content or a plain string, so the name of a lane can carry an icon or any other markup.
+/// `color` is the lane's color.
+///
+/// `label`, `color` and the `label-position` default may also be given positionally, in any order:
+/// the three are told apart by type.  Content in a trailing block is the label, as in
+/// `replica("server", above)[server]`.
 ///
 /// `defaults` holds the defaults for the points on this lane, keyed by the point argument each one
 /// stands for and each still overridable point by point.  `label-position` (`above`/`below` on a
@@ -730,16 +734,31 @@
   let lane-color = args.named().at("color", default: auto)
   let lane-label = args.named().at("label", default: auto)
   let defaults = _lane-default-values(args.named().at("defaults", default: (:)))
+  let given = ()
   for arg in args.pos() {
-    if type(arg) == alignment {
-      defaults = (..defaults, label-position: arg)
+    let slot = if type(arg) == alignment {
+      "label-position"
     } else if type(arg) == color {
-      lane-color = arg
+      "color"
+    } else if type(arg) in (content, str, symbol) {
+      "label"
     } else {
       panic(
-        "lamport-diagram: a replica takes only a side or a color positionally -- give `label`, "
-          + "`color` and `defaults` by name",
+        "lamport-diagram: a replica takes only a label, a side or a color positionally -- give "
+          + "`defaults` by name",
       )
+    }
+    assert(
+      not (slot in given),
+      message: "lamport-diagram: a replica was given two " + slot + " arguments",
+    )
+    given.push(slot)
+    if slot == "label-position" {
+      defaults = (..defaults, label-position: arg)
+    } else if slot == "color" {
+      lane-color = arg
+    } else {
+      lane-label = arg
     }
   }
   assert(

@@ -138,7 +138,8 @@ release each of these landed in, and what is still waiting.
 
    Define a lane, and the defaults the points on it fall back on.
 
-   :param label: what the diagram prints for the lane.  Defaults to ``name``.
+   :param label: what the diagram prints for the lane -- content or a plain string, so the name of a
+      lane can carry an icon or any other markup.  Defaults to ``name``.
 
    :param color: the lane's color.  Defaults to the next entry of ``default-palette``, cycled over
       `replicas <replica>`:func: in order.
@@ -161,9 +162,10 @@ release each of these landed in, and what is still waiting.
          their label takes the side that clears it; their own ``label-position`` overrides that.
          The other three defaults reach all four kinds of point.
 
-   ``color`` and the ``label-position`` default may also be given positionally, in either order:
-   they are told apart by type, so ``replica("A", below, red)`` and ``replica("B", red, below)`` are
-   the same lane.  The rest must be named.
+   ``label``, ``color`` and the ``label-position`` default may also be given positionally, in any
+   order: they are told apart by type, so ``replica("A", below, red)`` and ``replica("B", red,
+   below)`` are the same lane.  Content in a trailing block is the label, which is what lets a lane
+   carry markup. ``defaults`` must be named.
 
 .. typst:function:: event(..args)
 
