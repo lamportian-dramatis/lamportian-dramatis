@@ -103,7 +103,7 @@ keeps the two versions in step:
    :only-lines: 1-2,4-9
    :dedent:
 
-   #import "@preview/lamportian-dramatis:0.2.0": draw
+   #import "@preview/lamportian-dramatis:0.3.0": draw
 
    #lamport-diagram(
    overlays: (
@@ -700,7 +700,7 @@ through it, and a ring at ``marks`` so ``A.2``'s own label stays legible over it
 
 .. typst-code::
 
-   #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, replica, event, send, recv, sync, above, below, draw
+   #import "@preview/lamportian-dramatis:0.3.0": lamport-diagram, replica, event, send, recv, sync, above, below, draw
 
    #lamport-diagram(
      replicas: (replica("S", above, color: luma(0)), replica("A", below), replica("C", below)),

@@ -17,7 +17,7 @@ VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' typst.toml)
 #
 # Required: without these the package does not work, or does not carry its own license and its own
 # minimal offline documentation.  They go in the archive users download.
-DIST := typst.toml lib.typ README.md LICENSE
+DIST := typst.toml src README.md LICENSE
 
 # Documentation: whatever the README links to, so that those links resolve on Typst Universe.  These
 # are committed alongside the package and kept out of the downloaded archive by `exclude` in
@@ -58,7 +58,7 @@ gallery: $(IMAGES)
 
 $(IMAGES): | install
 
-gallery/%.png: gallery/%.typ lib.typ
+gallery/%.png: gallery/%.typ src/*.typ
 	$(TYPST) compile --root . --format png --ppi 200 $< $@
 
 ## Compile every example without writing anything: silence means the library still works.

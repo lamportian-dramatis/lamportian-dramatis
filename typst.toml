@@ -1,8 +1,8 @@
 [package]
 name = "lamportian-dramatis"
-version = "0.2.0"
+version = "0.3.0"
 compiler = "0.14.0"
-entrypoint = "lib.typ"
+entrypoint = "src/lib.typ"
 authors = ["Manuel Vázquez Acosta <https://github.com/mvaled>"]
 license = "MIT"
 description = "Draw Lamport diagrams of replicas exchanging messages (with all the drama it entails)."

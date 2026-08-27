@@ -19,7 +19,7 @@ The image above is drawing with a DSL-like giving the replicas and their events:
 
 .. typst-code::
 
-   #import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, below, above, send, recv, replica
+   #import "@preview/lamportian-dramatis:0.3.0": lamport-diagram, sync, below, above, send, recv, replica
 
    #set page(width: 13cm, height: auto, margin: 0.4cm)
    #set text(size: 10pt)

@@ -7,8 +7,8 @@ All notable changes to this package are recorded here.  The format follows `Keep
 may break anything.  A Typst import names an exact version, so nothing breaks under you: upgrading
 is always a deliberate edit.
 
-Unreleased
-----------
+0.3.0 -- Unreleased
+-------------------
 
 Added
 ~~~~~

@@ -1,4 +1,4 @@
-#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap, below
+#import "@preview/lamportian-dramatis:0.3.0": lamport-diagram, sync, send, recv, replica, gap, below
 
 #set page(width: 12cm, height: auto, margin: 0.4cm)
 #set text(size: 10pt, font: ("CaskaydiaMono NF", "Adwaita Mono", "Cascadia Code"))

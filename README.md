@@ -9,7 +9,7 @@ Lamport diagrams for replicated systems: one timeline per replica, local events 
 That is [`gallery/legend.typ`](gallery/legend.typ), a complete standalone document and one of the worked examples that ship with the package.  The callouts are drawn with [overlays](https://lamportian-dramatis.github.io/overlays); the diagram under them is just:
 
 ```typ
-#import "@preview/lamportian-dramatis:0.2.0": lamport-diagram, sync, send, recv, replica, gap, below
+#import "@preview/lamportian-dramatis:0.3.0": lamport-diagram, sync, send, recv, replica, gap, below
 
 #set page(width: 13cm, height: auto, margin: 0.4cm)
 #set text(size: 10pt)
@@ -64,7 +64,7 @@ The documentation is written in reStructuredText under [`docs/`](https://github.
 
 `site/` is the [`lamportian-dramatis.github.io`](https://github.com/lamportian-dramatis/lamportian-dramatis.github.io) repository, carried here as a submodule, and holds nothing but that build — GitHub Pages serves it verbatim, which is what the `.nojekyll` file in it is for.  Clone with `--recurse-submodules`, or run `git submodule update --init` in an existing clone.  Commit and push inside `site/` first, then commit the moved submodule pointer here, so that a revision of this repository names the pages that went with it.
 
-The gallery examples import the package by its published spec rather than by a relative path, which is what the Universe linter asks for.  So `check`, `gallery` and `publish` all first run `install`, which copies the working tree over `@preview/lamportian-dramatis:0.2.0` in your [local package directory](https://github.com/typst/packages?tab=readme-ov-file#local-packages).  That copy shadows whatever Typst Universe would otherwise serve, so run `make uninstall` when you are done working on the package.
+The gallery examples import the package by its published spec rather than by a relative path, which is what the Universe linter asks for.  So `check`, `gallery` and `publish` all first run `install`, which copies the working tree over `@preview/lamportian-dramatis:0.3.0` in your [local package directory](https://github.com/typst/packages?tab=readme-ov-file#local-packages).  That copy shadows whatever Typst Universe would otherwise serve, so run `make uninstall` when you are done working on the package.
 
 ## License
 
